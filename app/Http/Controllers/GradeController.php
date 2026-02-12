@@ -1,0 +1,119 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Grade;
+use App\Models\Exam;
+use App\Models\SchoolClass;
+use App\Models\Subject;
+use App\Models\Enrollment;
+use App\Models\AcademicYear;
+use Illuminate\Http\Request;
+
+class GradeController extends Controller
+{
+    public function index(Request $request)
+    {
+        $exams = Exam::with(['academicYear', 'term'])->orderBy('created_at', 'desc')->get();
+        $classes = SchoolClass::active()->orderBy('level')->get();
+        $subjects = Subject::active()->orderBy('name')->get();
+
+        // If exam_id is provided, redirect to the enter page
+        if ($request->filled('exam_id') && $request->filled('class_id') && $request->filled('subject_id')) {
+            return redirect()->route('grades.enter', [
+                'exam' => $request->exam_id,
+                'class_id' => $request->class_id,
+                'subject_id' => $request->subject_id,
+            ]);
+        }
+
+        return view('grades.index', compact('exams', 'classes', 'subjects'));
+    }
+
+    public function enter(Request $request, Exam $exam)
+    {
+        $classes = SchoolClass::active()->with('subjects')->orderBy('level')->get();
+        $selectedClassId = $request->get('class_id');
+        $selectedSubjectId = $request->get('subject_id');
+
+        $students = collect();
+        $existingGrades = collect();
+        $subjects = collect();
+        $subject = null;
+
+        if ($selectedClassId) {
+            $class = SchoolClass::find($selectedClassId);
+            $subjects = $class ? $class->subjects : collect();
+
+            $enrollments = Enrollment::with('student')
+                ->where('school_class_id', $selectedClassId)
+                ->where('academic_year_id', $exam->academic_year_id)
+                ->where('status', 'active')
+                ->get();
+            $students = $enrollments->pluck('student');
+
+            if ($selectedSubjectId) {
+                $subject = Subject::find($selectedSubjectId);
+                $existingGrades = Grade::where('exam_id', $exam->id)
+                    ->where('school_class_id', $selectedClassId)
+                    ->where('subject_id', $selectedSubjectId)
+                    ->get()
+                    ->keyBy('student_id');
+            }
+        }
+
+        return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId'));
+    }
+
+    public function save(Request $request, Exam $exam)
+    {
+        $validated = $request->validate([
+            'class_id' => 'required|exists:school_classes,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'grades' => 'required|array',
+            'grades.*.student_id' => 'required|exists:students,id',
+            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:100',
+            'grades.*.remarks' => 'nullable|string',
+        ]);
+
+        // Load grading scale for grade letter calculation
+        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
+        $ranges = $gradingScale ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get() : collect();
+
+        foreach ($request->grades as $gradeData) {
+            if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {
+                $marks = (float) $gradeData['marks_obtained'];
+
+                // Auto-calculate grade letter from grading scale
+                $gradeLetter = null;
+                foreach ($ranges as $range) {
+                    if ($marks >= $range->min_mark && $marks <= $range->max_mark) {
+                        $gradeLetter = $range->grade;
+                        break;
+                    }
+                }
+
+                Grade::updateOrCreate(
+                    [
+                        'exam_id' => $exam->id,
+                        'student_id' => $gradeData['student_id'],
+                        'subject_id' => $request->subject_id,
+                    ],
+                    [
+                        'school_class_id' => $request->class_id,
+                        'marks_obtained' => $marks,
+                        'grade_letter' => $gradeLetter,
+                        'remarks' => $gradeData['remarks'] ?? null,
+                        'graded_by' => auth()->id(),
+                    ]
+                );
+            }
+        }
+
+        return redirect()->route('grades.enter', [
+            'exam' => $exam->id,
+            'class_id' => $request->class_id,
+            'subject_id' => $request->subject_id,
+        ])->with('success', 'Grades saved successfully.');
+    }
+}
