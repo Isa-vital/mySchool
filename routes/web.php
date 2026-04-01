@@ -24,11 +24,21 @@ use App\Http\Controllers\BookIssueController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\DemoRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Static pages
+Route::get('/privacy', [PageController::class, 'privacy'])->name('pages.privacy');
+Route::get('/terms', [PageController::class, 'terms'])->name('pages.terms');
+Route::get('/cookies', [PageController::class, 'cookies'])->name('pages.cookies');
+
+// Demo request form
+Route::post('/demo-request', [DemoRequestController::class, 'store'])->name('demo.request');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 

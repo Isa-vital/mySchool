@@ -1592,7 +1592,7 @@
             <p class="hero-desc">mySchool UG combines student records, fee management, attendance, grades, and parent communication into one simple platform &mdash; designed specifically for Ugandan schools from P1 to S6.</p>
             <div class="hero-actions">
                 <a href="{{ route('register') }}" class="btn-big">Start Free &mdash; 30 Days &rarr;</a>
-                <button class="btn-ghost-big">&#9654; Watch Demo</button>
+                <a href="#contact" class="btn-ghost-big">&#9654; Watch Demo</a>
             </div>
             <div class="hero-trust">
                 <div class="trust-avatars">
@@ -1935,19 +1935,30 @@
             <div class="cta-form-box">
                 <h3>Request a free demo</h3>
                 <p>We'll reach out within one working day.</p>
-                <div class="cf-field">
-                    <label class="cf-label">School name</label>
-                    <input class="cf-input" type="text" placeholder="e.g. St. Mary's College Kisubi" />
+                @if(session('success'))
+                <div style="background:var(--green-light);color:var(--green-dark);padding:12px 16px;border-radius:var(--r-sm);font-size:14px;font-weight:500;margin-bottom:1rem;">{{ session('success') }}</div>
+                @endif
+                @if($errors->any())
+                <div style="background:#fbeaf0;color:#9b1c31;padding:12px 16px;border-radius:var(--r-sm);font-size:13px;margin-bottom:1rem;">
+                    @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
                 </div>
-                <div class="cf-field">
-                    <label class="cf-label">Your name &amp; role</label>
-                    <input class="cf-input" type="text" placeholder="e.g. John Ssali — Headmaster" />
-                </div>
-                <div class="cf-field">
-                    <label class="cf-label">WhatsApp number</label>
-                    <input class="cf-input" type="tel" placeholder="+256 700 000 000" />
-                </div>
-                <button class="btn-submit">Request Free Demo &rarr;</button>
+                @endif
+                <form method="POST" action="{{ route('demo.request') }}">
+                    @csrf
+                    <div class="cf-field">
+                        <label class="cf-label">School name</label>
+                        <input class="cf-input" type="text" name="school_name" placeholder="e.g. St. Mary's College Kisubi" value="{{ old('school_name') }}" required />
+                    </div>
+                    <div class="cf-field">
+                        <label class="cf-label">Your name &amp; role</label>
+                        <input class="cf-input" type="text" name="contact_name" placeholder="e.g. John Ssali — Headmaster" value="{{ old('contact_name') }}" required />
+                    </div>
+                    <div class="cf-field">
+                        <label class="cf-label">WhatsApp number</label>
+                        <input class="cf-input" type="tel" name="whatsapp" placeholder="+256 700 000 000" value="{{ old('whatsapp') }}" required />
+                    </div>
+                    <button type="submit" class="btn-submit">Request Free Demo &rarr;</button>
+                </form>
                 <div class="cf-note">No spam. No commitment. Just a friendly call from our team.</div>
             </div>
         </div>
@@ -1963,10 +1974,10 @@
                 </div>
                 <p class="footer-brand-desc">The all-in-one school management platform built specifically for Ugandan Primary and Secondary schools. Simple, affordable, and backed by a local team in Kampala.</p>
                 <div class="footer-social">
-                    <div class="social-btn">f</div>
-                    <div class="social-btn">&#120143;</div>
-                    <div class="social-btn">W</div>
-                    <div class="social-btn">in</div>
+                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-btn">f</a>
+                    <a href="https://x.com" target="_blank" rel="noopener noreferrer" class="social-btn">&#120143;</a>
+                    <a href="https://wa.me/256700000000" target="_blank" rel="noopener noreferrer" class="social-btn">W</a>
+                    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="social-btn">in</a>
                 </div>
             </div>
             <div class="footer-col">
@@ -1974,19 +1985,19 @@
                 <ul>
                     <li><a href="#features">Features</a></li>
                     <li><a href="#pricing">Pricing</a></li>
-                    <li><a href="#">Changelog</a></li>
-                    <li><a href="#">Roadmap</a></li>
-                    <li><a href="#">Security</a></li>
+                    <li><a href="{{ route('pages.privacy') }}">Privacy &amp; Security</a></li>
+                    <li><a href="{{ route('pages.terms') }}">Terms of Service</a></li>
+                    <li><a href="{{ route('pages.cookies') }}">Cookie Policy</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h5>Resources</h5>
                 <ul>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">User Guides</a></li>
-                    <li><a href="#">Video Tutorials</a></li>
-                    <li><a href="#">Blog</a></li>
-                    <li><a href="#">Status Page</a></li>
+                    <li><a href="#contact">Help Center</a></li>
+                    <li><a href="#how">Getting Started</a></li>
+                    <li><a href="#features">Feature Guide</a></li>
+                    <li><a href="#testimonials">Customer Stories</a></li>
+                    <li><a href="#contact">Contact Support</a></li>
                 </ul>
             </div>
             <div class="footer-col">
@@ -2002,9 +2013,9 @@
         <div class="footer-bottom">
             <div class="footer-copy">&copy; {{ date('Y') }} mySchool UG &middot; All rights reserved &middot; Made with &#10084;&#65039; in Uganda &#127482;&#127468;</div>
             <div class="footer-links-bottom">
-                <a href="#">Privacy Policy</a>
-                <a href="#">Terms of Service</a>
-                <a href="#">Cookie Policy</a>
+                <a href="{{ route('pages.privacy') }}">Privacy Policy</a>
+                <a href="{{ route('pages.terms') }}">Terms of Service</a>
+                <a href="{{ route('pages.cookies') }}">Cookie Policy</a>
             </div>
         </div>
     </footer>
