@@ -6,7 +6,10 @@ use App\Models\Payment;
 use App\Models\Invoice;
 use App\Models\Student;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Requests\StorePaymentRequest;
+use App\Mail\PaymentReceivedMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class PaymentController extends Controller
 {
@@ -18,7 +21,7 @@ class PaymentController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('receipt_number', 'like', "%{$search}%")
-                  ->orWhereHas('student', fn($sq) => $sq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+                    ->orWhereHas('student', fn($sq) => $sq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
             });
         }
 
@@ -48,17 +51,9 @@ class PaymentController extends Controller
         return view('payments.create', compact('students', 'invoices', 'selectedStudentId'));
     }
 
-    public function store(Request $request)
+    public function store(StorePaymentRequest $request)
     {
-        $validated = $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'invoice_id' => 'nullable|exists:invoices,id',
-            'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|string',
-            'reference' => 'nullable|string',
-            'payment_date' => 'required|date',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $prefix = setting('receipt_prefix', 'RCT');
         $lastPayment = Payment::orderBy('id', 'desc')->first();
@@ -86,6 +81,16 @@ class PaymentController extends Controller
                     'balance' => $invoice->total_amount - $totalPaid,
                     'status' => $totalPaid >= $invoice->total_amount ? 'paid' : 'partial',
                 ]);
+            }
+        }
+
+        // Send payment receipt email to guardian
+        $student = $payment->student;
+        if ($student) {
+            $guardian = $student->primaryGuardian();
+            $email = $guardian?->email ?? $student->email;
+            if ($email) {
+                Mail::to($email)->queue(new PaymentReceivedMail($payment));
             }
         }
 

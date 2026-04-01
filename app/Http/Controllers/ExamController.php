@@ -8,7 +8,12 @@ use App\Models\AcademicYear;
 use App\Models\Term;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Http\Requests\StoreExamRequest;
+use App\Http\Requests\UpdateExamRequest;
+use App\Http\Requests\StoreExamScheduleRequest;
+use App\Mail\ExamResultsPublishedMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class ExamController extends Controller
 {
@@ -25,18 +30,9 @@ class ExamController extends Controller
         return view('exams.create', compact('academicYears', 'classes'));
     }
 
-    public function store(Request $request)
+    public function store(StoreExamRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'required|exists:terms,id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'description' => 'nullable|string',
-            'class_ids' => 'nullable|array',
-            'class_ids.*' => 'exists:school_classes,id',
-        ]);
+        $validated = $request->validated();
 
         $exam = Exam::create($validated);
 
@@ -75,22 +71,28 @@ class ExamController extends Controller
         return view('exams.edit', compact('exam', 'academicYears'));
     }
 
-    public function update(Request $request, Exam $exam)
+    public function update(UpdateExamRequest $request, Exam $exam)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'required|exists:terms,id',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'description' => 'nullable|string',
-            'is_published' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         // Handle unchecked checkbox
         $validated['is_published'] = $request->has('is_published');
 
         $exam->update($validated);
+
+        // If exam is being published, notify guardians
+        if ($request->has('is_published') && $exam->is_published) {
+            $studentIds = $exam->grades()->distinct()->pluck('student_id');
+            $students = \App\Models\Student::with('guardians')->whereIn('id', $studentIds)->get();
+            foreach ($students as $student) {
+                $guardian = $student->primaryGuardian();
+                $email = $guardian?->email ?? $student->email;
+                if ($email) {
+                    Mail::to($email)->queue(new ExamResultsPublishedMail($student, $exam));
+                }
+            }
+        }
+
         return redirect()->route('exams.index')->with('success', 'Exam updated successfully.');
     }
 
@@ -103,18 +105,9 @@ class ExamController extends Controller
     /**
      * Add a schedule entry to an exam.
      */
-    public function addSchedule(Request $request, Exam $exam)
+    public function addSchedule(StoreExamScheduleRequest $request, Exam $exam)
     {
-        $validated = $request->validate([
-            'school_class_id' => 'required|exists:school_classes,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'exam_date' => 'nullable|date',
-            'start_time' => 'nullable|date_format:H:i',
-            'end_time' => 'nullable|date_format:H:i|after:start_time',
-            'full_marks' => 'required|numeric|min:1',
-            'pass_marks' => 'required|numeric|min:0',
-            'room' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $validated['exam_id'] = $exam->id;
         ExamSchedule::create($validated);

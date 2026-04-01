@@ -6,6 +6,7 @@ use App\Models\BookIssue;
 use App\Models\Book;
 use App\Models\Student;
 use App\Models\Staff;
+use App\Http\Requests\StoreBookIssueRequest;
 use Illuminate\Http\Request;
 
 class BookIssueController extends Controller
@@ -25,15 +26,9 @@ class BookIssueController extends Controller
         return view('book-issues.index', compact('issues', 'books', 'students'));
     }
 
-    public function store(Request $request)
+    public function store(StoreBookIssueRequest $request)
     {
-        $validated = $request->validate([
-            'book_id' => 'required|exists:books,id',
-            'borrower_type' => 'required|in:App\Models\Student,App\Models\Staff',
-            'borrower_id' => 'required|integer',
-            'issue_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:issue_date',
-        ]);
+        $validated = $request->validated();
 
         $book = Book::find($request->book_id);
         if ($book->available_copies <= 0) {

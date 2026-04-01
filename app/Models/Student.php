@@ -2,15 +2,30 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Student extends Model
 {
+    use LogsActivity;
     protected $fillable = [
-        'admission_number', 'first_name', 'last_name', 'other_names',
-        'gender', 'date_of_birth', 'nationality', 'religion', 'address',
-        'phone', 'email', 'blood_group', 'medical_conditions',
-        'previous_school', 'admission_date', 'photo', 'status',
+        'admission_number',
+        'first_name',
+        'last_name',
+        'other_names',
+        'gender',
+        'date_of_birth',
+        'nationality',
+        'religion',
+        'address',
+        'phone',
+        'email',
+        'blood_group',
+        'medical_conditions',
+        'previous_school',
+        'admission_date',
+        'photo',
+        'status',
     ];
 
     protected $casts = [

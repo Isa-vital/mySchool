@@ -2,13 +2,22 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    use LogsActivity;
     protected $fillable = [
-        'receipt_number', 'invoice_id', 'student_id', 'amount',
-        'payment_method', 'reference', 'payment_date', 'notes', 'received_by',
+        'receipt_number',
+        'invoice_id',
+        'student_id',
+        'amount',
+        'payment_method',
+        'reference',
+        'payment_date',
+        'notes',
+        'received_by',
     ];
 
     protected $casts = [

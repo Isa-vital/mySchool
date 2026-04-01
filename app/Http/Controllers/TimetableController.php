@@ -8,6 +8,7 @@ use App\Models\Section;
 use App\Models\Subject;
 use App\Models\Staff;
 use App\Models\AcademicYear;
+use App\Http\Requests\StoreTimetableSlotRequest;
 use Illuminate\Http\Request;
 
 class TimetableController extends Controller
@@ -47,18 +48,9 @@ class TimetableController extends Controller
         return view('timetable.create', compact('classes', 'subjects', 'teachers'));
     }
 
-    public function store(Request $request)
+    public function store(StoreTimetableSlotRequest $request)
     {
-        $validated = $request->validate([
-            'school_class_id' => 'required|exists:school_classes,id',
-            'section_id' => 'nullable|exists:sections,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'staff_id' => 'nullable|exists:staff,id',
-            'day_of_week' => 'required|integer|min:1|max:7',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'room' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $currentYear = AcademicYear::current();
         $validated['academic_year_id'] = $currentYear->id;
@@ -66,6 +58,15 @@ class TimetableController extends Controller
         TimetableSlot::create($validated);
         return redirect()->route('timetable.index', ['class_id' => $request->school_class_id, 'section_id' => $request->section_id])
             ->with('success', 'Timetable slot added.');
+    }
+
+    public function edit(TimetableSlot $slot)
+    {
+        $classes = SchoolClass::active()->with('sections')->orderBy('level')->get();
+        $subjects = Subject::active()->orderBy('name')->get();
+        $teachers = Staff::active()->orderBy('first_name')->get();
+
+        return view('timetable.edit', compact('slot', 'classes', 'subjects', 'teachers'));
     }
 
     public function update(Request $request, TimetableSlot $slot)

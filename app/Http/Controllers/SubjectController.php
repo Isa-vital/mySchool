@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subject;
+use App\Http\Requests\StoreSubjectRequest;
+use App\Http\Requests\UpdateSubjectRequest;
 use Illuminate\Http\Request;
 
 class SubjectController extends Controller
@@ -24,14 +26,9 @@ class SubjectController extends Controller
         return view('subjects.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreSubjectRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:20',
-            'type' => 'nullable|in:core,elective',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         Subject::create($validated);
         return redirect()->route('subjects.index')->with('success', 'Subject created successfully.');
@@ -42,15 +39,9 @@ class SubjectController extends Controller
         return view('subjects.edit', compact('subject'));
     }
 
-    public function update(Request $request, Subject $subject)
+    public function update(UpdateSubjectRequest $request, Subject $subject)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:20',
-            'type' => 'nullable|in:core,elective',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $subject->update($validated);
         return redirect()->route('subjects.index')->with('success', 'Subject updated successfully.');

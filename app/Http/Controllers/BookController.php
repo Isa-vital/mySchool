@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Book;
 use App\Models\BookCategory;
+use App\Http\Requests\StoreBookRequest;
+use App\Http\Requests\UpdateBookRequest;
 use Illuminate\Http\Request;
 
 class BookController extends Controller
@@ -16,8 +18,8 @@ class BookController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('author', 'like', "%{$search}%")
-                  ->orWhere('isbn', 'like', "%{$search}%");
+                    ->orWhere('author', 'like', "%{$search}%")
+                    ->orWhere('isbn', 'like', "%{$search}%");
             });
         }
 
@@ -37,19 +39,9 @@ class BookController extends Controller
         return view('books.create', compact('categories'));
     }
 
-    public function store(Request $request)
+    public function store(StoreBookRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'nullable|string|max:255',
-            'isbn' => 'nullable|string|max:50',
-            'publisher' => 'nullable|string|max:255',
-            'publish_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
-            'book_category_id' => 'nullable|exists:book_categories,id',
-            'total_copies' => 'required|integer|min:1',
-            'shelf_location' => 'nullable|string|max:100',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $validated['available_copies'] = $validated['total_copies'];
         Book::create($validated);
@@ -69,20 +61,9 @@ class BookController extends Controller
         return view('books.edit', compact('book', 'categories'));
     }
 
-    public function update(Request $request, Book $book)
+    public function update(UpdateBookRequest $request, Book $book)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'nullable|string|max:255',
-            'isbn' => 'nullable|string|max:50',
-            'publisher' => 'nullable|string|max:255',
-            'publish_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
-            'book_category_id' => 'nullable|exists:book_categories,id',
-            'total_copies' => 'required|integer|min:1',
-            'shelf_location' => 'nullable|string|max:100',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $book->update($validated);
         return redirect()->route('books.index')->with('success', 'Book updated successfully.');

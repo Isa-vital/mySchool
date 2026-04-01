@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Staff;
 use App\Models\User;
+use App\Http\Requests\StoreStaffRequest;
+use App\Http\Requests\UpdateStaffRequest;
 use Illuminate\Http\Request;
 
 class StaffController extends Controller
@@ -16,8 +18,8 @@ class StaffController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('staff_number', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('staff_number', 'like', "%{$search}%");
             });
         }
 
@@ -35,25 +37,9 @@ class StaffController extends Controller
         return view('staff.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreStaffRequest $request)
     {
-        $validated = $request->validate([
-            'staff_number' => 'required|string|unique:staff',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => 'nullable|in:male,female',
-            'date_of_birth' => 'nullable|date',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'address' => 'nullable|string',
-            'designation' => 'nullable|string|max:255',
-            'department' => 'nullable|string|max:255',
-            'qualification' => 'nullable|string|max:255',
-            'join_date' => 'nullable|date',
-            'employment_type' => 'nullable|in:full-time,part-time,contract',
-            'photo' => 'nullable|image|max:2048',
-            'create_account' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('staff', 'public');
@@ -87,25 +73,9 @@ class StaffController extends Controller
         return view('staff.edit', compact('staff'));
     }
 
-    public function update(Request $request, Staff $staff)
+    public function update(UpdateStaffRequest $request, Staff $staff)
     {
-        $validated = $request->validate([
-            'staff_number' => 'required|string|unique:staff,staff_number,' . $staff->id,
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'gender' => 'nullable|in:male,female',
-            'date_of_birth' => 'nullable|date',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'address' => 'nullable|string',
-            'designation' => 'nullable|string|max:255',
-            'department' => 'nullable|string|max:255',
-            'qualification' => 'nullable|string|max:255',
-            'join_date' => 'nullable|date',
-            'employment_type' => 'nullable|in:full-time,part-time,contract',
-            'photo' => 'nullable|image|max:2048',
-            'is_active' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('staff', 'public');

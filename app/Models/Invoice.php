@@ -2,13 +2,23 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Invoice extends Model
 {
+    use LogsActivity;
     protected $fillable = [
-        'invoice_number', 'student_id', 'academic_year_id', 'term_id',
-        'total_amount', 'amount_paid', 'balance', 'status', 'due_date', 'notes',
+        'invoice_number',
+        'student_id',
+        'academic_year_id',
+        'term_id',
+        'total_amount',
+        'amount_paid',
+        'balance',
+        'status',
+        'due_date',
+        'notes',
     ];
 
     protected $casts = [

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicYear;
 use App\Models\Term;
+use App\Http\Requests\StoreAcademicYearRequest;
+use App\Http\Requests\UpdateAcademicYearRequest;
 use Illuminate\Http\Request;
 
 class AcademicYearController extends Controller
@@ -19,18 +21,9 @@ class AcademicYearController extends Controller
         return view('academic-years.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreAcademicYearRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'is_current' => 'nullable|boolean',
-            'terms' => 'nullable|array',
-            'terms.*.name' => 'required_with:terms|string|max:255',
-            'terms.*.start_date' => 'required_with:terms|date',
-            'terms.*.end_date' => 'required_with:terms|date',
-        ]);
+        $validated = $request->validated();
 
         if ($request->boolean('is_current')) {
             AcademicYear::where('is_current', true)->update(['is_current' => false]);
@@ -64,13 +57,9 @@ class AcademicYearController extends Controller
         return view('academic-years.edit', compact('academicYear'));
     }
 
-    public function update(Request $request, AcademicYear $academicYear)
+    public function update(UpdateAcademicYearRequest $request, AcademicYear $academicYear)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-        ]);
+        $validated = $request->validated();
 
         $academicYear->update($validated);
         return redirect()->route('academic-years.index')->with('success', 'Academic year updated successfully.');

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Http\Requests\StoreSchoolClassRequest;
+use App\Http\Requests\UpdateSchoolClassRequest;
 use Illuminate\Http\Request;
 
 class SchoolClassController extends Controller
@@ -21,19 +23,9 @@ class SchoolClassController extends Controller
         return view('classes.create', compact('subjects'));
     }
 
-    public function store(Request $request)
+    public function store(StoreSchoolClassRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:20',
-            'level' => 'nullable|integer',
-            'description' => 'nullable|string',
-            'subjects' => 'nullable|array',
-            'subjects.*' => 'exists:subjects,id',
-            'sections' => 'nullable|array',
-            'sections.*.name' => 'required_with:sections|string|max:255',
-            'sections.*.capacity' => 'nullable|integer|min:1',
-        ]);
+        $validated = $request->validated();
 
         $class = SchoolClass::create($validated);
 
@@ -63,17 +55,9 @@ class SchoolClassController extends Controller
         return view('classes.edit', compact('class', 'subjects'));
     }
 
-    public function update(Request $request, SchoolClass $class)
+    public function update(UpdateSchoolClassRequest $request, SchoolClass $class)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'nullable|string|max:20',
-            'level' => 'nullable|integer',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-            'subjects' => 'nullable|array',
-            'subjects.*' => 'exists:subjects,id',
-        ]);
+        $validated = $request->validated();
 
         $class->update($validated);
 

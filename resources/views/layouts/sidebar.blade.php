@@ -6,16 +6,17 @@
         'w-16': !sidebarOpen,
         '-translate-x-full lg:translate-x-0': !mobileSidebarOpen,
         'translate-x-0': mobileSidebarOpen
-    }"
->
+    }">
     {{-- Logo / School Name --}}
     <div class="flex items-center h-16 px-4 border-b border-gray-200" style="background-color: var(--primary-color);">
         @if(setting('school_logo'))
-            <img src="{{ asset('storage/' . setting('school_logo')) }}" alt="Logo" class="h-10 w-10 rounded-full object-cover flex-shrink-0">
+        <img src="{{ asset('storage/' . setting('school_logo')) }}" alt="Logo" class="h-10 w-10 rounded-full object-cover flex-shrink-0">
         @else
-            <div class="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-            </div>
+        <div class="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+        </div>
         @endif
         <span class="ml-3 text-white font-bold text-sm truncate" x-show="sidebarOpen" x-transition>
             {{ setting('school_name', 'MySchool') }}
@@ -127,6 +128,23 @@
             @endcan
         </x-sidebar-group>
         @endcanany
+
+        {{-- Parent Portal --}}
+        @role('Parent')
+        <x-sidebar-group label="My Children" icon="users" :active="request()->routeIs('parent.*')">
+            <x-sidebar-sublink href="{{ route('parent.dashboard') }}" :active="request()->routeIs('parent.dashboard')">Dashboard</x-sidebar-sublink>
+        </x-sidebar-group>
+        @endrole
+
+        {{-- Teacher Portal --}}
+        @role('Teacher')
+        <x-sidebar-group label="My Portal" icon="academic-cap" :active="request()->routeIs('teacher.*')">
+            <x-sidebar-sublink href="{{ route('teacher.dashboard') }}" :active="request()->routeIs('teacher.dashboard')">Dashboard</x-sidebar-sublink>
+            <x-sidebar-sublink href="{{ route('teacher.timetable') }}" :active="request()->routeIs('teacher.timetable')">My Timetable</x-sidebar-sublink>
+            <x-sidebar-sublink href="{{ route('teacher.attendance') }}" :active="request()->routeIs('teacher.attendance*')">Mark Attendance</x-sidebar-sublink>
+            <x-sidebar-sublink href="{{ route('teacher.grades') }}" :active="request()->routeIs('teacher.grades', 'teacher.enter-grades*')">Enter Grades</x-sidebar-sublink>
+        </x-sidebar-group>
+        @endrole
 
         {{-- Administration --}}
         @canany(['settings.view', 'users.view', 'roles.view'])

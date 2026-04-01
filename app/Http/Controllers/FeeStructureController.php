@@ -7,6 +7,8 @@ use App\Models\FeeType;
 use App\Models\SchoolClass;
 use App\Models\AcademicYear;
 use App\Models\Term;
+use App\Http\Requests\StoreFeeStructureRequest;
+use App\Http\Requests\UpdateFeeStructureRequest;
 use Illuminate\Http\Request;
 
 class FeeStructureController extends Controller
@@ -39,16 +41,9 @@ class FeeStructureController extends Controller
         return view('fee-structures.create', compact('feeTypes', 'classes', 'academicYears'));
     }
 
-    public function store(Request $request)
+    public function store(StoreFeeStructureRequest $request)
     {
-        $validated = $request->validate([
-            'fee_type_id' => 'required|exists:fee_types,id',
-            'school_class_id' => 'required|exists:school_classes,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'nullable|exists:terms,id',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         FeeStructure::create($validated);
         return redirect()->route('fee-structures.index')->with('success', 'Fee structure created successfully.');
@@ -63,16 +58,9 @@ class FeeStructureController extends Controller
         return view('fee-structures.edit', compact('feeStructure', 'feeTypes', 'classes', 'academicYears'));
     }
 
-    public function update(Request $request, FeeStructure $feeStructure)
+    public function update(UpdateFeeStructureRequest $request, FeeStructure $feeStructure)
     {
-        $validated = $request->validate([
-            'fee_type_id' => 'required|exists:fee_types,id',
-            'school_class_id' => 'required|exists:school_classes,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'nullable|exists:terms,id',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $feeStructure->update($validated);
         return redirect()->route('fee-structures.index')->with('success', 'Fee structure updated successfully.');

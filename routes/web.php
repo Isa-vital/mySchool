@@ -119,6 +119,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index')->middleware('permission:timetable.view');
     Route::get('timetable/create', [TimetableController::class, 'create'])->name('timetable.create')->middleware('permission:timetable.create');
     Route::post('timetable', [TimetableController::class, 'store'])->name('timetable.store')->middleware('permission:timetable.create');
+    Route::get('timetable/{slot}/edit', [TimetableController::class, 'edit'])->name('timetable.edit')->middleware('permission:timetable.edit');
     Route::put('timetable/{slot}', [TimetableController::class, 'update'])->name('timetable.update')->middleware('permission:timetable.edit');
     Route::delete('timetable/{slot}', [TimetableController::class, 'destroy'])->name('timetable.destroy')->middleware('permission:timetable.delete');
 
@@ -253,6 +254,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Administration - Settings
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index')->middleware('permission:settings.view');
     Route::post('settings', [SettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.edit');
+
+    // Parent Portal
+    Route::prefix('parent-portal')->name('parent.')->middleware('role:Parent')->group(function () {
+        Route::get('/', [App\Http\Controllers\ParentPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/child/{student}', [App\Http\Controllers\ParentPortalController::class, 'childDetails'])->name('child');
+        Route::get('/child/{student}/attendance', [App\Http\Controllers\ParentPortalController::class, 'attendance'])->name('attendance');
+        Route::get('/child/{student}/results', [App\Http\Controllers\ParentPortalController::class, 'results'])->name('results');
+        Route::get('/child/{student}/fees', [App\Http\Controllers\ParentPortalController::class, 'fees'])->name('fees');
+    });
+
+    // Teacher Portal
+    Route::prefix('teacher-portal')->name('teacher.')->middleware('role:Teacher')->group(function () {
+        Route::get('/', [App\Http\Controllers\TeacherPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('/timetable', [App\Http\Controllers\TeacherPortalController::class, 'timetable'])->name('timetable');
+        Route::get('/attendance', [App\Http\Controllers\TeacherPortalController::class, 'attendance'])->name('attendance');
+        Route::post('/attendance', [App\Http\Controllers\TeacherPortalController::class, 'storeAttendance'])->name('attendance.store');
+        Route::get('/grades', [App\Http\Controllers\TeacherPortalController::class, 'grades'])->name('grades');
+        Route::get('/grades/{exam}/enter', [App\Http\Controllers\TeacherPortalController::class, 'enterGrades'])->name('enter-grades');
+        Route::post('/grades/{exam}/save', [App\Http\Controllers\TeacherPortalController::class, 'saveGrades'])->name('save-grades');
+    });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\FeeType;
+use App\Http\Requests\StoreFeeTypeRequest;
+use App\Http\Requests\UpdateFeeTypeRequest;
 use Illuminate\Http\Request;
 
 class FeeTypeController extends Controller
@@ -18,12 +20,9 @@ class FeeTypeController extends Controller
         return view('fee-types.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreFeeTypeRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         FeeType::create($validated);
         return redirect()->route('fee-types.index')->with('success', 'Fee type created successfully.');
@@ -34,13 +33,9 @@ class FeeTypeController extends Controller
         return view('fee-types.edit', compact('feeType'));
     }
 
-    public function update(Request $request, FeeType $feeType)
+    public function update(UpdateFeeTypeRequest $request, FeeType $feeType)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'is_active' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $feeType->update($validated);
         return redirect()->route('fee-types.index')->with('success', 'Fee type updated successfully.');

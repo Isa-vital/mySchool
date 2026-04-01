@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Notice;
 use App\Models\SchoolClass;
+use App\Http\Requests\StoreNoticeRequest;
+use App\Http\Requests\UpdateNoticeRequest;
 use Illuminate\Http\Request;
 
 class NoticeController extends Controller
@@ -20,17 +22,9 @@ class NoticeController extends Controller
         return view('notices.create', compact('classes'));
     }
 
-    public function store(Request $request)
+    public function store(StoreNoticeRequest $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'target_audience' => 'required|in:all,staff,students,parents,specific_class',
-            'school_class_id' => 'nullable|exists:school_classes,id',
-            'publish_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date|after_or_equal:publish_date',
-            'is_published' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $validated['created_by'] = auth()->id();
         Notice::create($validated);
@@ -48,17 +42,9 @@ class NoticeController extends Controller
         return view('notices.edit', compact('notice', 'classes'));
     }
 
-    public function update(Request $request, Notice $notice)
+    public function update(UpdateNoticeRequest $request, Notice $notice)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'target_audience' => 'required|in:all,staff,students,parents,specific_class',
-            'school_class_id' => 'nullable|exists:school_classes,id',
-            'publish_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date|after_or_equal:publish_date',
-            'is_published' => 'nullable|boolean',
-        ]);
+        $validated = $request->validated();
 
         $notice->update($validated);
         return redirect()->route('notices.index')->with('success', 'Notice updated successfully.');

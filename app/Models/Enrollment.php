@@ -2,13 +2,19 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Enrollment extends Model
 {
+    use LogsActivity;
     protected $fillable = [
-        'student_id', 'school_class_id', 'section_id',
-        'academic_year_id', 'roll_number', 'status',
+        'student_id',
+        'school_class_id',
+        'section_id',
+        'academic_year_id',
+        'roll_number',
+        'status',
     ];
 
     public function student()

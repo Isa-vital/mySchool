@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guardian;
+use App\Http\Requests\StoreGuardianRequest;
+use App\Http\Requests\UpdateGuardianRequest;
 use Illuminate\Http\Request;
 
 class GuardianController extends Controller
@@ -15,8 +17,8 @@ class GuardianController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -29,19 +31,9 @@ class GuardianController extends Controller
         return view('guardians.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreGuardianRequest $request)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'relationship' => 'nullable|string|max:50',
-            'phone' => 'nullable|string|max:20',
-            'alt_phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'address' => 'nullable|string',
-            'occupation' => 'nullable|string|max:255',
-            'national_id' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         Guardian::create($validated);
         return redirect()->route('guardians.index')->with('success', 'Guardian added successfully.');
@@ -49,7 +41,7 @@ class GuardianController extends Controller
 
     public function show(Guardian $guardian)
     {
-        $guardian->load(['students.enrollments' => function($q) {
+        $guardian->load(['students.enrollments' => function ($q) {
             $currentYear = \App\Models\AcademicYear::current();
             if ($currentYear) {
                 $q->where('academic_year_id', $currentYear->id)->with(['schoolClass', 'section']);
@@ -63,19 +55,9 @@ class GuardianController extends Controller
         return view('guardians.edit', compact('guardian'));
     }
 
-    public function update(Request $request, Guardian $guardian)
+    public function update(UpdateGuardianRequest $request, Guardian $guardian)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'relationship' => 'nullable|string|max:50',
-            'phone' => 'nullable|string|max:20',
-            'alt_phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'address' => 'nullable|string',
-            'occupation' => 'nullable|string|max:255',
-            'national_id' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $guardian->update($validated);
         return redirect()->route('guardians.show', $guardian)->with('success', 'Guardian updated successfully.');

@@ -8,6 +8,7 @@ use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Enrollment;
 use App\Models\AcademicYear;
+use App\Http\Requests\SaveGradesRequest;
 use Illuminate\Http\Request;
 
 class GradeController extends Controller
@@ -65,16 +66,9 @@ class GradeController extends Controller
         return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId'));
     }
 
-    public function save(Request $request, Exam $exam)
+    public function save(SaveGradesRequest $request, Exam $exam)
     {
-        $validated = $request->validate([
-            'class_id' => 'required|exists:school_classes,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'grades' => 'required|array',
-            'grades.*.student_id' => 'required|exists:students,id',
-            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:100',
-            'grades.*.remarks' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         // Load grading scale for grade letter calculation
         $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Http\Requests\StoreMessageRequest;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
@@ -24,19 +25,15 @@ class MessageController extends Controller
         return view('messages.create', compact('users'));
     }
 
-    public function store(Request $request)
+    public function store(StoreMessageRequest $request)
     {
-        $validated = $request->validate([
-            'receiver_id' => 'required|exists:users,id',
-            'subject' => 'nullable|string|max:255',
-            'body' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         Message::create([
             'sender_id' => auth()->id(),
-            'receiver_id' => $request->receiver_id,
-            'subject' => $request->subject,
-            'body' => $request->body,
+            'receiver_id' => $validated['receiver_id'],
+            'subject' => $validated['subject'] ?? null,
+            'body' => $validated['body'],
         ]);
 
         return redirect()->route('messages.index')->with('success', 'Message sent successfully.');

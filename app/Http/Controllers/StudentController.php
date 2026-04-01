@@ -8,6 +8,8 @@ use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
@@ -20,8 +22,8 @@ class StudentController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('admission_number', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('admission_number', 'like', "%{$search}%");
             });
         }
 
@@ -34,12 +36,12 @@ class StudentController extends Controller
             if ($currentYear) {
                 $query->whereHas('enrollments', function ($q) use ($request, $currentYear) {
                     $q->where('school_class_id', $request->class_id)
-                      ->where('academic_year_id', $currentYear->id);
+                        ->where('academic_year_id', $currentYear->id);
                 });
             }
         }
 
-        $students = $query->with(['enrollments' => function($q) use ($classes) {
+        $students = $query->with(['enrollments' => function ($q) use ($classes) {
             $currentYear = AcademicYear::current();
             if ($currentYear) {
                 $q->where('academic_year_id', $currentYear->id)->with(['schoolClass', 'section']);
@@ -57,36 +59,9 @@ class StudentController extends Controller
         return view('students.create', compact('classes', 'academicYear'));
     }
 
-    public function store(Request $request)
+    public function store(StoreStudentRequest $request)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'other_names' => 'nullable|string|max:255',
-            'admission_number' => 'required|string|unique:students',
-            'gender' => 'nullable|in:male,female',
-            'date_of_birth' => 'nullable|date',
-            'nationality' => 'nullable|string|max:100',
-            'religion' => 'nullable|string|max:100',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'blood_group' => 'nullable|string|max:5',
-            'medical_conditions' => 'nullable|string',
-            'previous_school' => 'nullable|string|max:255',
-            'admission_date' => 'nullable|date',
-            'photo' => 'nullable|image|max:2048',
-            'class_id' => 'nullable|exists:school_classes,id',
-            'section_id' => 'nullable|exists:sections,id',
-            // Guardian fields
-            'guardian_first_name' => 'nullable|string|max:255',
-            'guardian_last_name' => 'nullable|string|max:255',
-            'guardian_relationship' => 'nullable|string|max:50',
-            'guardian_phone' => 'nullable|string|max:20',
-            'guardian_email' => 'nullable|email',
-            'guardian_address' => 'nullable|string',
-            'guardian_occupation' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('students', 'public');
@@ -155,27 +130,9 @@ class StudentController extends Controller
         return view('students.edit', compact('student', 'classes', 'currentEnrollment'));
     }
 
-    public function update(Request $request, Student $student)
+    public function update(UpdateStudentRequest $request, Student $student)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'other_names' => 'nullable|string|max:255',
-            'admission_number' => 'required|string|unique:students,admission_number,' . $student->id,
-            'gender' => 'nullable|in:male,female',
-            'date_of_birth' => 'nullable|date',
-            'nationality' => 'nullable|string|max:100',
-            'religion' => 'nullable|string|max:100',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'blood_group' => 'nullable|string|max:5',
-            'medical_conditions' => 'nullable|string',
-            'previous_school' => 'nullable|string|max:255',
-            'admission_date' => 'nullable|date',
-            'status' => 'nullable|in:active,graduated,transferred,withdrawn,suspended',
-            'photo' => 'nullable|image|max:2048',
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('students', 'public');

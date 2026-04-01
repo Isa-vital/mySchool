@@ -8,6 +8,7 @@ use App\Models\SchoolClass;
 use App\Models\Section;
 use App\Models\AcademicYear;
 use App\Models\Enrollment;
+use App\Http\Requests\StoreAttendanceRequest;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -45,17 +46,9 @@ class AttendanceController extends Controller
         return view('attendance.index', compact('classes', 'students', 'attendances', 'selectedClassId', 'selectedSectionId', 'date'));
     }
 
-    public function store(Request $request)
+    public function store(StoreAttendanceRequest $request)
     {
-        $validated = $request->validate([
-            'class_id' => 'required|exists:school_classes,id',
-            'section_id' => 'nullable|exists:sections,id',
-            'date' => 'required|date',
-            'attendance' => 'required|array',
-            'attendance.*.student_id' => 'required|exists:students,id',
-            'attendance.*.status' => 'required|in:present,absent,late,excused',
-            'attendance.*.remarks' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $currentYear = AcademicYear::current();
 

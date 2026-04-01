@@ -10,7 +10,11 @@ use App\Models\SchoolClass;
 use App\Models\AcademicYear;
 use App\Models\Term;
 use App\Models\Enrollment;
+use App\Http\Requests\StoreInvoiceRequest;
+use App\Http\Requests\GenerateBulkInvoicesRequest;
+use App\Mail\InvoiceCreatedMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class InvoiceController extends Controller
 {
@@ -22,7 +26,7 @@ class InvoiceController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhereHas('student', fn($sq) => $sq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
+                    ->orWhereHas('student', fn($sq) => $sq->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"));
             });
         }
 
@@ -41,19 +45,9 @@ class InvoiceController extends Controller
         return view('invoices.create', compact('students', 'academicYears'));
     }
 
-    public function store(Request $request)
+    public function store(StoreInvoiceRequest $request)
     {
-        $validated = $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'nullable|exists:terms,id',
-            'due_date' => 'nullable|date',
-            'notes' => 'nullable|string',
-            'items' => 'required|array|min:1',
-            'items.*.fee_type_id' => 'required|exists:fee_types,id',
-            'items.*.description' => 'nullable|string',
-            'items.*.amount' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $prefix = setting('invoice_prefix', 'INV');
         $lastInvoice = Invoice::orderBy('id', 'desc')->first();
@@ -79,6 +73,17 @@ class InvoiceController extends Controller
             $invoice->items()->create($item);
         }
 
+        // Send invoice email to guardian
+        $invoice->load(['student', 'academicYear', 'term', 'items.feeType']);
+        $student = $invoice->student;
+        if ($student) {
+            $guardian = $student->primaryGuardian();
+            $email = $guardian?->email ?? $student->email;
+            if ($email) {
+                Mail::to($email)->queue(new InvoiceCreatedMail($invoice));
+            }
+        }
+
         return redirect()->route('invoices.index')->with('success', 'Invoice created successfully.');
     }
 
@@ -95,63 +100,17 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.index')->with('success', 'Invoice deleted successfully.');
     }
 
-    public function generateBulk(Request $request)
+    public function generateBulk(GenerateBulkInvoicesRequest $request)
     {
-        $validated = $request->validate([
-            'class_id' => 'required|exists:school_classes,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'nullable|exists:terms,id',
-        ]);
+        $validated = $request->validated();
 
-        $currentYear = AcademicYear::find($request->academic_year_id);
-        $enrollments = Enrollment::where('school_class_id', $request->class_id)
-            ->where('academic_year_id', $currentYear->id)
-            ->where('status', 'active')
-            ->get();
+        \App\Jobs\GenerateBulkInvoicesJob::dispatch(
+            $request->academic_year_id,
+            $request->class_id,
+            $request->term_id,
+            auth()->id(),
+        );
 
-        $feeStructures = FeeStructure::where('school_class_id', $request->class_id)
-            ->where('academic_year_id', $currentYear->id)
-            ->when($request->term_id, fn($q) => $q->where('term_id', $request->term_id))
-            ->get();
-
-        $prefix = setting('invoice_prefix', 'INV');
-        $lastInvoice = Invoice::orderBy('id', 'desc')->first();
-        $nextNumber = $lastInvoice ? ((int)substr($lastInvoice->invoice_number, strlen($prefix)) + 1) : 1;
-        $count = 0;
-
-        foreach ($enrollments as $enrollment) {
-            $existing = Invoice::where('student_id', $enrollment->student_id)
-                ->where('academic_year_id', $currentYear->id)
-                ->when($request->term_id, fn($q) => $q->where('term_id', $request->term_id))
-                ->exists();
-
-            if ($existing) continue;
-
-            $totalAmount = $feeStructures->sum('amount');
-            $invoiceNumber = $prefix . str_pad($nextNumber++, 6, '0', STR_PAD_LEFT);
-
-            $invoice = Invoice::create([
-                'invoice_number' => $invoiceNumber,
-                'student_id' => $enrollment->student_id,
-                'academic_year_id' => $currentYear->id,
-                'term_id' => $request->term_id,
-                'total_amount' => $totalAmount,
-                'amount_paid' => 0,
-                'balance' => $totalAmount,
-                'status' => 'unpaid',
-            ]);
-
-            foreach ($feeStructures as $fee) {
-                $invoice->items()->create([
-                    'fee_type_id' => $fee->fee_type_id,
-                    'description' => $fee->feeType->name,
-                    'amount' => $fee->amount,
-                ]);
-            }
-
-            $count++;
-        }
-
-        return redirect()->route('invoices.index')->with('success', "{$count} invoices generated successfully.");
+        return redirect()->route('invoices.index')->with('success', 'Bulk invoice generation has been queued and will be processed shortly.');
     }
 }
