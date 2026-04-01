@@ -1,106 +1,129 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ setting('school_name', config('app.name', 'MySchool')) }}</title>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <!-- PWA -->
-        <link rel="manifest" href="{{ asset('manifest.json') }}">
-        <meta name="theme-color" content="{{ setting('primary_color', '#1e40af') }}">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{{ setting('school_name', config('app.name', 'MySchool')) }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Favicon -->
+    @if(setting('school_favicon'))
+    <link rel="icon" type="image/png" href="{{ asset('storage/' . setting('school_favicon')) }}">
+    @endif
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-        @livewireStyles
+    <!-- PWA -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="{{ setting('primary_color', '#1e40af') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-        <style>
-            :root {
-                --primary-color: {{ setting('primary_color', '#1e40af') }};
-                --secondary-color: {{ setting('secondary_color', '#7c3aed') }};
-            }
-        </style>
-    </head>
-    <body class="font-sans antialiased" x-data="{ sidebarOpen: true, mobileSidebarOpen: false }">
-        <div class="min-h-screen bg-gray-100 flex">
-            {{-- Sidebar --}}
-            @include('layouts.sidebar')
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-            {{-- Main Content Area --}}
-            <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 lg:ml-64" :class="!sidebarOpen && 'lg:ml-16 lg:!ml-16'">
-                {{-- Top Bar --}}
-                @include('layouts.topbar')
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
 
-                {{-- Page Heading --}}
-                @isset($header)
-                    <header class="bg-white shadow-sm border-b">
-                        <div class="px-4 sm:px-6 lg:px-8 py-4">
-                            {{ $header }}
-                        </div>
-                    </header>
-                @endisset
-
-                {{-- Flash Messages --}}
-                @if(session('success'))
-                    <div class="px-4 sm:px-6 lg:px-8 mt-4">
-                        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
-                            {{ session('success') }}
-                        </div>
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="px-4 sm:px-6 lg:px-8 mt-4">
-                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
-                            {{ session('error') }}
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Page Content --}}
-                <main class="flex-1 p-4 sm:p-6 lg:p-8">
-                    {{ $slot }}
-                </main>
-
-                {{-- Offline Indicator --}}
-                <div id="offline-indicator" class="hidden fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m2.828 9.9a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 12h.01"></path></svg>
-                    <span>You are offline</span>
-                    <span id="sync-count" class="bg-yellow-600 text-xs px-2 py-0.5 rounded-full hidden">0 pending</span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Mobile sidebar overlay --}}
-        <div x-show="mobileSidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-30 lg:hidden" @click="mobileSidebarOpen = false"></div>
-
-        @livewireScripts
-        <script>
-            // Register service worker
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(reg => {
-                    console.log('SW registered:', reg.scope);
-                }).catch(err => console.log('SW registration failed:', err));
-            }
-
-            // Online/Offline detection
-            function updateOnlineStatus() {
-                const indicator = document.getElementById('offline-indicator');
-                if (navigator.onLine) {
-                    indicator.classList.add('hidden');
-                } else {
-                    indicator.classList.remove('hidden');
+    <style>
+        :root {
+            --primary-color: {
+                    {
+                    setting('primary_color', '#1e40af')
                 }
             }
-            window.addEventListener('online', updateOnlineStatus);
-            window.addEventListener('offline', updateOnlineStatus);
-            updateOnlineStatus();
-        </script>
-    </body>
+
+            ;
+
+            --secondary-color: {
+                    {
+                    setting('secondary_color', '#7c3aed')
+                }
+            }
+
+            ;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased" x-data="{ sidebarOpen: true, mobileSidebarOpen: false }">
+    <div class="min-h-screen bg-gray-100 flex">
+        {{-- Sidebar --}}
+        @include('layouts.sidebar')
+
+        {{-- Main Content Area --}}
+        <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 lg:ml-64" :class="!sidebarOpen && 'lg:ml-16 lg:!ml-16'">
+            {{-- Top Bar --}}
+            @include('layouts.topbar')
+
+            {{-- Page Heading --}}
+            @isset($header)
+            <header class="bg-white shadow-sm border-b">
+                <div class="px-4 sm:px-6 lg:px-8 py-4">
+                    {{ $header }}
+                </div>
+            </header>
+            @endisset
+
+            {{-- Flash Messages --}}
+            @if(session('success'))
+            <div class="px-4 sm:px-6 lg:px-8 mt-4">
+                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
+                    {{ session('success') }}
+                </div>
+            </div>
+            @endif
+            @if(session('error'))
+            <div class="px-4 sm:px-6 lg:px-8 mt-4">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
+                    {{ session('error') }}
+                </div>
+            </div>
+            @endif
+
+            {{-- Page Content --}}
+            <main class="flex-1 p-4 sm:p-6 lg:p-8">
+                {{ $slot }}
+            </main>
+
+            {{-- Offline Indicator --}}
+            <div id="offline-indicator" class="hidden fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m2.828 9.9a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 12h.01"></path>
+                </svg>
+                <span>You are offline</span>
+                <span id="sync-count" class="bg-yellow-600 text-xs px-2 py-0.5 rounded-full hidden">0 pending</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Mobile sidebar overlay --}}
+    <div x-show="mobileSidebarOpen" x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-30 lg:hidden" @click="mobileSidebarOpen = false"></div>
+
+    @livewireScripts
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(reg => {
+                console.log('SW registered:', reg.scope);
+            }).catch(err => console.log('SW registration failed:', err));
+        }
+
+        // Online/Offline detection
+        function updateOnlineStatus() {
+            const indicator = document.getElementById('offline-indicator');
+            if (navigator.onLine) {
+                indicator.classList.add('hidden');
+            } else {
+                indicator.classList.remove('hidden');
+            }
+        }
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+    </script>
+</body>
+
 </html>
