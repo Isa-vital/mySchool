@@ -94,7 +94,27 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
         }
 
+        if ($user->hasRole('Super Admin')) {
+            return redirect()->route('users.index')->with('error', 'The Super Admin account cannot be deleted.');
+        }
+
         $user->delete();
         return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+    }
+
+    public function approve(User $user)
+    {
+        $user->update(['is_approved' => true]);
+        return redirect()->route('users.index')->with('success', $user->name . ' has been approved.');
+    }
+
+    public function reject(User $user)
+    {
+        if ($user->hasRole('Super Admin')) {
+            return redirect()->route('users.index')->with('error', 'The Super Admin account cannot be rejected.');
+        }
+
+        $user->update(['is_approved' => false]);
+        return redirect()->route('users.index')->with('success', $user->name . ' has been rejected.');
     }
 }

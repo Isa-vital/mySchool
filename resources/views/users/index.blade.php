@@ -34,6 +34,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roles</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Approval</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
@@ -54,12 +55,31 @@
                                 <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Inactive</span>
                             @endif
                         </td>
+                        <td class="px-6 py-4">
+                            @if($user->is_approved)
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Approved</span>
+                            @else
+                                <span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Pending</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-right space-x-2">
+                            @if(auth()->user()->hasRole('Super Admin') && !$user->is_approved)
+                            <form method="POST" action="{{ route('users.approve', $user) }}" class="inline">
+                                @csrf
+                                <button class="text-sm font-medium text-green-600 hover:text-green-800">Approve</button>
+                            </form>
+                            @endif
+                            @if(auth()->user()->hasRole('Super Admin') && $user->is_approved && !$user->hasRole('Super Admin') && $user->id !== auth()->id())
+                            <form method="POST" action="{{ route('users.reject', $user) }}" class="inline" onsubmit="return confirm('Revoke approval for this user?')">
+                                @csrf
+                                <button class="text-sm font-medium text-amber-600 hover:text-amber-800">Revoke</button>
+                            </form>
+                            @endif
                             @can('users.edit')
                             <a href="{{ route('users.edit', $user) }}" class="text-sm font-medium" style="color: var(--primary-color);">Edit</a>
                             @endcan
                             @can('users.delete')
-                                @if($user->id !== auth()->id())
+                                @if($user->id !== auth()->id() && !$user->hasRole('Super Admin'))
                                 <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline" onsubmit="return confirm('Delete this user?')">
                                     @csrf @method('DELETE')
                                     <button class="text-sm font-medium text-red-600 hover:text-red-800">Delete</button>
@@ -69,7 +89,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No users found.</td></tr>
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">No users found.</td></tr>
                 @endforelse
             </tbody>
         </table>

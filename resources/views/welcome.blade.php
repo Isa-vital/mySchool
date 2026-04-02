@@ -1682,6 +1682,10 @@
                 display: none;
             }
 
+            .nav-right .btn-header {
+                display: none;
+            }
+
             .hamburger {
                 display: block;
             }
@@ -1739,7 +1743,7 @@
             </nav>
             <div class="nav-right">
                 <a href="{{ route('login') }}" class="btn-login">Log in</a>
-                <a href="{{ route('register') }}" class="btn-header"><span class="hidden sm:inline">Start Free Trial</span><span class="sm:hidden">Start Free</span> &rarr;</a>
+                <a href="{{ route('register') }}" class="btn-header">Start Free Trial &rarr;</a>
                 <button class="hamburger" id="hamburger-btn" aria-label="Open menu">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />

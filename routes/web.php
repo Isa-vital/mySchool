@@ -40,7 +40,15 @@ Route::get('/cookies', [PageController::class, 'cookies'])->name('pages.cookies'
 // Demo request form
 Route::post('/demo-request', [DemoRequestController::class, 'store'])->name('demo.request');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+// Pending approval page (auth required, but no approval needed)
+Route::middleware(['auth', 'verified'])->get('/approval/pending', function () {
+    if (auth()->user()->is_approved) {
+        return redirect()->route('dashboard');
+    }
+    return view('auth.approval-pending');
+})->name('approval.pending');
+
+Route::middleware(['auth', 'verified', 'approved'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('permission:dashboard.view');
@@ -248,6 +256,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.edit');
     Route::patch('users/{user}', [UserController::class, 'update'])->middleware('permission:users.edit');
     Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.delete');
+    Route::post('users/{user}/approve', [UserController::class, 'approve'])->name('users.approve')->middleware('role:Super Admin');
+    Route::post('users/{user}/reject', [UserController::class, 'reject'])->name('users.reject')->middleware('role:Super Admin');
 
     // Administration - Roles
     Route::middleware('permission:roles.view')->group(function () {
