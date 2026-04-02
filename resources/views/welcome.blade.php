@@ -11,6 +11,7 @@
     <meta name="keywords" content="school management system Uganda, school management software, student management, fee management, attendance tracking, report cards Uganda, school ERP, uSchool, primary school management, secondary school management, Kampala school software" />
     <meta name="author" content="uSchool" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="google-site-verification" content="MyGswO9BrT81Sm57oJIHO-sr8Xxra1MbstxDdLvSYsU" />
     <link rel="canonical" href="{{ url('/') }}" />
 
     {{-- Open Graph / Facebook --}}
