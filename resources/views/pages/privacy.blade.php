@@ -1,12 +1,13 @@
 @extends('layouts.page')
 
 @section('title', 'Privacy Policy')
+@section('meta_description', 'Learn how uSchool protects your personal data. Our privacy policy covers data collection, usage, security, and your rights as a school, parent, or staff member in Uganda.')
 
 @section('content')
 <h1>Privacy Policy</h1>
 <p class="page-meta">Last updated: {{ date('F j, Y') }}</p>
 
-<p>mySchool UG ("we", "our", or "the platform") is committed to protecting the privacy and security of all personal data entrusted to us by schools, students, parents, guardians, and staff members in Uganda.</p>
+<p>uSchool ("we", "our", or "the platform") is committed to protecting the privacy and security of all personal data entrusted to us by schools, students, parents, guardians, and staff members.</p>
 
 <h2>1. Information We Collect</h2>
 <p>We collect the following types of information when schools use our platform:</p>
@@ -71,7 +72,7 @@
 <h2>9. Contact Us</h2>
 <p>If you have questions about this Privacy Policy, please contact us at:</p>
 <ul>
-    <li><strong>Email:</strong> hello@myschool.ug</li>
+    <li><strong>Email:</strong> hello@uschool.ug</li>
     <li><strong>Phone / WhatsApp:</strong> +256 700 000 000</li>
     <li><strong>Address:</strong> Kampala, Uganda</li>
 </ul>

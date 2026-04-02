@@ -4,7 +4,82 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mySchool UG – Smart School Management for Uganda</title>
+    <title>uSchool – Smarter School Management for Ugandan Schools</title>
+
+    {{-- Primary SEO --}}
+    <meta name="description" content="uSchool is the all-in-one school management platform built for Ugandan primary and secondary schools. Manage students, fees, attendance, grades, report cards, and parent communication — all from one dashboard." />
+    <meta name="keywords" content="school management system Uganda, school management software, student management, fee management, attendance tracking, report cards Uganda, school ERP, uSchool, primary school management, secondary school management, Kampala school software" />
+    <meta name="author" content="uSchool" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="{{ url('/') }}" />
+
+    {{-- Open Graph / Facebook --}}
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ url('/') }}" />
+    <meta property="og:title" content="uSchool – Smarter School Management for Ugandan Schools" />
+    <meta property="og:description" content="Manage students, fees, attendance, grades, and parent communication in one simple platform. Built for Ugandan P1–S6 schools. Start your free 30-day trial." />
+    <meta property="og:image" content="{{ asset('img/logo/uschoollogo.png') }}" />
+    <meta property="og:image:alt" content="uSchool – Smarter School Management" />
+    <meta property="og:site_name" content="uSchool" />
+    <meta property="og:locale" content="en_UG" />
+
+    {{-- Twitter Card --}}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="uSchool – Smarter School Management for Ugandan Schools" />
+    <meta name="twitter:description" content="The all-in-one school management platform for Ugandan primary &amp; secondary schools. Students, fees, attendance, grades — all in one place." />
+    <meta name="twitter:image" content="{{ asset('img/logo/uschoollogo.png') }}" />
+
+    {{-- Favicon --}}
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon_io/apple-touch-icon.png') }}" />
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/favicon_io/favicon-32x32.png') }}" />
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('img/favicon_io/favicon-16x16.png') }}" />
+    <link rel="manifest" href="{{ asset('img/favicon_io/site.webmanifest') }}" />
+    <meta name="theme-color" content="#1D9E75" />
+
+    {{-- Structured Data (JSON-LD) --}}
+    <script type="application/ld+json">
+        {
+            "@@context": "https://schema.org",
+            "@@type": "SoftwareApplication",
+            "name": "uSchool",
+            "url": "{{ url('/') }}",
+            "description": "The all-in-one school management platform built for Ugandan primary and secondary schools. Manage students, fees, attendance, grades, and parent communication.",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web",
+            "offers": {
+                "@@type": "AggregateOffer",
+                "priceCurrency": "UGX",
+                "lowPrice": "750000",
+                "highPrice": "1300000",
+                "offerCount": "3"
+            },
+            "aggregateRating": {
+                "@@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "reviewCount": "120",
+                "bestRating": "5"
+            },
+            "publisher": {
+                "@@type": "Organization",
+                "name": "uSchool",
+                "url": "{{ url('/') }}",
+                "logo": "{{ asset('img/logo/uschoollogo.png') }}",
+                "contactPoint": {
+                    "@@type": "ContactPoint",
+                    "telephone": "+256-700-000-000",
+                    "contactType": "customer service",
+                    "areaServed": "UG",
+                    "availableLanguage": "English"
+                },
+                "address": {
+                    "@@type": "PostalAddress",
+                    "addressLocality": "Kampala",
+                    "addressCountry": "UG"
+                }
+            }
+        }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
     <style>
         *,
@@ -94,41 +169,10 @@
             gap: 10px;
         }
 
-        .logo-icon {
-            width: 38px;
+        .logo-img {
             height: 38px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--green) 0%, var(--green-dark) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 800;
-            color: #fff;
-            font-family: var(--font-h);
-            letter-spacing: -1px;
-            flex-shrink: 0;
-        }
-
-        .logo-text {
-            font-family: var(--font-h);
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .logo-text span {
-            color: var(--green);
-        }
-
-        .logo-ug {
-            font-size: 10px;
-            background: var(--green-light);
-            color: var(--green-dark);
-            padding: 2px 8px;
-            border-radius: 99px;
-            font-weight: 700;
-            letter-spacing: .3px;
+            width: auto;
+            object-fit: contain;
         }
 
         .nav-links {
@@ -202,10 +246,140 @@
             display: none;
             background: none;
             border: 1px solid var(--border-md);
-            border-radius: 6px;
-            padding: 6px 9px;
+            border-radius: 8px;
+            padding: 8px;
             cursor: pointer;
-            font-size: 16px;
+            line-height: 1;
+            color: var(--text);
+            transition: border-color .2s, background .2s;
+        }
+
+        .hamburger:hover {
+            border-color: var(--green);
+            background: var(--green-light);
+        }
+
+        .hamburger svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+
+        /* MOBILE MENU */
+        .mobile-menu {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .mobile-menu.open {
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        .mobile-menu-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+
+        .mobile-menu.open .mobile-menu-overlay {
+            opacity: 1;
+        }
+
+        .mobile-menu-panel {
+            position: relative;
+            background: #fff;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            transform: translateY(-100%);
+            transition: transform .35s cubic-bezier(.4, 0, .2, 1);
+            max-height: 100vh;
+            overflow-y: auto;
+        }
+
+        .mobile-menu.open .mobile-menu-panel {
+            transform: translateY(0);
+        }
+
+        .mobile-menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mobile-menu-close {
+            background: none;
+            border: 1px solid var(--border-md);
+            border-radius: 8px;
+            padding: 6px;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+            transition: border-color .2s, color .2s;
+        }
+
+        .mobile-menu-close:hover {
+            border-color: var(--green);
+            color: var(--green-dark);
+        }
+
+        .mobile-menu-close svg {
+            width: 20px;
+            height: 20px;
+            display: block;
+        }
+
+        .mobile-menu-links {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .mobile-menu-links a {
+            display: block;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text);
+            border-radius: var(--r-sm);
+            transition: background .2s, color .2s;
+        }
+
+        .mobile-menu-links a:hover {
+            background: var(--green-light);
+            color: var(--green-dark);
+        }
+
+        .mobile-menu-actions {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mobile-menu-actions .btn-login {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+        }
+
+        .mobile-menu-actions .btn-header {
+            justify-content: center;
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 15px;
         }
 
         /* HERO */
@@ -1322,25 +1496,11 @@
             margin-bottom: 1rem;
         }
 
-        .footer-logo-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 9px;
-            background: linear-gradient(135deg, var(--green), var(--green-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 800;
-            color: #fff;
-            font-family: var(--font-h);
-        }
-
-        .footer-logo-name {
-            font-family: var(--font-h);
-            font-size: 17px;
-            font-weight: 700;
-            color: #fff;
+        .footer-logo-img {
+            height: 34px;
+            width: auto;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
         }
 
         .footer-brand-desc {
@@ -1512,16 +1672,22 @@
             }
         }
 
-        @media(max-width:640px) {
+        @media(max-width:768px) {
 
-            .nav-links,
-            .btn-login {
+            .nav-links {
+                display: none;
+            }
+
+            .nav-right .btn-login {
                 display: none;
             }
 
             .hamburger {
                 display: block;
             }
+        }
+
+        @media(max-width:640px) {
 
             .cards-grid {
                 grid-template-columns: 1fr;
@@ -1562,9 +1728,7 @@
     <header id="site-header">
         <div class="nav-inner">
             <div class="logo">
-                <div class="logo-icon">mS</div>
-                <div class="logo-text">my<span>School</span></div>
-                <span class="logo-ug">UG</span>
+                <img src="{{ asset('img/logo/uschoollogo.png') }}" alt="uSchool" class="logo-img" />
             </div>
             <nav class="nav-links">
                 <a href="#features">Features</a>
@@ -1575,11 +1739,43 @@
             </nav>
             <div class="nav-right">
                 <a href="{{ route('login') }}" class="btn-login">Log in</a>
-                <a href="{{ route('register') }}" class="btn-header">Start Free Trial &rarr;</a>
-                <button class="hamburger">&#9776;</button>
+                <a href="{{ route('register') }}" class="btn-header"><span class="hidden sm:inline">Start Free Trial</span><span class="sm:hidden">Start Free</span> &rarr;</a>
+                <button class="hamburger" id="hamburger-btn" aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
             </div>
         </div>
     </header>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-overlay" id="mobile-menu-overlay"></div>
+        <div class="mobile-menu-panel">
+            <div class="mobile-menu-header">
+                <div class="logo">
+                    <img src="{{ asset('img/logo/uschoollogo.png') }}" alt="uSchool" class="logo-img" />
+                </div>
+                <button class="mobile-menu-close" id="mobile-menu-close" aria-label="Close menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <nav class="mobile-menu-links">
+                <a href="#features">Features</a>
+                <a href="#how">How it works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#testimonials">Reviews</a>
+                <a href="#contact">Contact</a>
+            </nav>
+            <div class="mobile-menu-actions">
+                <a href="{{ route('login') }}" class="btn-login">Log in</a>
+                <a href="{{ route('register') }}" class="btn-header">Start Free Trial &rarr;</a>
+            </div>
+        </div>
+    </div>
 
     <!-- HERO -->
     <section class="hero">
@@ -1589,7 +1785,7 @@
                 Built for Uganda &middot; Primary &amp; Secondary Schools
             </div>
             <h1>The <span class="hl">smarter</span> way<br>to run your school</h1>
-            <p class="hero-desc">mySchool UG combines student records, fee management, attendance, grades, and parent communication into one simple platform &mdash; designed specifically for Ugandan schools from P1 to S6.</p>
+            <p class="hero-desc">uSchool combines student records, fee management, attendance, grades, and parent communication into one simple platform &mdash; designed specifically for schools from P1 to S6.</p>
             <div class="hero-actions">
                 <a href="{{ route('register') }}" class="btn-big">Start Free &mdash; 30 Days &rarr;</a>
                 <a href="#contact" class="btn-ghost-big">&#9654; Watch Demo</a>
@@ -1632,7 +1828,7 @@
         </div>
     </section>
 
-    <!-- TRUSTED BY -->
+    {{-- TRUSTED BY — uncomment when real schools are onboarded
     <div class="logos-bar">
         <div class="logos-label">Trusted by schools across Uganda</div>
         <div class="logos-row">
@@ -1656,6 +1852,7 @@
             </div>
         </div>
     </div>
+    --}}
 
     <!-- FEATURES -->
     <section class="section" id="features">
@@ -1663,7 +1860,7 @@
             <div class="c" style="margin-bottom:4rem;">
                 <div class="chip">Features</div>
                 <div class="sec-h">Everything your school needs</div>
-                <p class="sec-p">From the first student enrolled to the last report card printed &mdash; mySchool UG handles it all in one place.</p>
+                <p class="sec-p">From the first student enrolled to the last report card printed &mdash; uSchool handles it all in one place.</p>
             </div>
 
             <div class="feat-split">
@@ -1828,7 +2025,7 @@
                         </div>
                     </div>
                     <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                    <p class="testi-q">"Fee collection used to take our bursar three full days every term. With mySchool UG it's updated in real time and parents can pay via mobile money. It has completely transformed how we operate."</p>
+                    <p class="testi-q">"Fee collection used to take our bursar three full days every term. With uSchool it's updated in real time and parents can pay via mobile money. It has completely transformed how we operate."</p>
                 </div>
                 <div class="testi-card">
                     <div class="testi-top">
@@ -1868,7 +2065,7 @@
                 <div class="price-card">
                     <div class="price-name">Starter</div>
                     <div class="price-desc">For small schools up to 200 students</div>
-                    <div class="price-amount">UGX 95,000 <small>/ term</small></div>
+                    <div class="price-amount">UGX 750,000 <small>/ year</small></div>
                     <hr class="divider" />
                     <ul class="price-feats">
                         <li><span class="chk"></span>Up to 200 students</li>
@@ -1884,7 +2081,7 @@
                     <div class="pop-badge">Most popular</div>
                     <div class="price-name">Growth</div>
                     <div class="price-desc">For growing schools up to 800 students</div>
-                    <div class="price-amount">UGX 250,000 <small>/ term</small></div>
+                    <div class="price-amount">UGX 1,300,000 <small>/ year</small></div>
                     <hr class="divider" />
                     <ul class="price-feats">
                         <li><span class="chk"></span>Up to 800 students</li>
@@ -1923,7 +2120,7 @@
         <div class="cta-inner">
             <div class="cta-left">
                 <h2>Start managing your school the smart way</h2>
-                <p>Join over 120 schools across Uganda already saving time, reducing paperwork, and keeping parents informed &mdash; all with mySchool UG.</p>
+                <p>Join over 120 schools already saving time, reducing paperwork, and keeping parents informed &mdash; all with uSchool.</p>
                 <ul class="cta-perks">
                     <li>Free 30-day trial &mdash; no credit card required</li>
                     <li>Setup assistance from our Kampala team</li>
@@ -1955,7 +2152,7 @@
                     </div>
                     <div class="cf-field">
                         <label class="cf-label">WhatsApp number</label>
-                        <input class="cf-input" type="tel" name="whatsapp" placeholder="+256 700 000 000" value="{{ old('whatsapp') }}" required />
+                        <input class="cf-input" type="tel" name="whatsapp" placeholder="+256 776 121 422" value="{{ old('whatsapp') }}" required />
                     </div>
                     <button type="submit" class="btn-submit">Request Free Demo &rarr;</button>
                 </form>
@@ -1969,14 +2166,13 @@
         <div class="footer-top">
             <div class="footer-brand">
                 <div class="footer-logo-row">
-                    <div class="footer-logo-icon">mS</div>
-                    <div class="footer-logo-name">mySchool UG</div>
+                    <img src="{{ asset('img/logo/uschoollogo.png') }}" alt="uSchool" class="footer-logo-img" />
                 </div>
                 <p class="footer-brand-desc">The all-in-one school management platform built specifically for Ugandan Primary and Secondary schools. Simple, affordable, and backed by a local team in Kampala.</p>
                 <div class="footer-social">
                     <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-btn">f</a>
                     <a href="https://x.com" target="_blank" rel="noopener noreferrer" class="social-btn">&#120143;</a>
-                    <a href="https://wa.me/256700000000" target="_blank" rel="noopener noreferrer" class="social-btn">W</a>
+                    <a href="https://wa.me/256776121422" target="_blank" rel="noopener noreferrer" class="social-btn">W</a>
                     <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="social-btn">in</a>
                 </div>
             </div>
@@ -2004,14 +2200,14 @@
                 <h5>Contact Us</h5>
                 <div class="footer-contact-items">
                     <div class="fc-item"><span class="fc-icon">&#128205;</span><span>Kampala, Uganda</span></div>
-                    <div class="fc-item"><span class="fc-icon">&#128222;</span><span>+256 700 000 000</span></div>
-                    <div class="fc-item"><span class="fc-icon">&#9993;&#65039;</span><span>hello@myschool.ug</span></div>
+                    <div class="fc-item"><span class="fc-icon">&#128222;</span><span>+256 776 121 422</span></div>
+                    <div class="fc-item"><span class="fc-icon">&#9993;&#65039;</span><span>uschool@techmarketug.com</span></div>
                     <div class="fc-item"><span class="fc-icon">&#128172;</span><span>WhatsApp Support<br>Mon&ndash;Fri, 8am&ndash;6pm</span></div>
                 </div>
             </div>
         </div>
         <div class="footer-bottom">
-            <div class="footer-copy">&copy; {{ date('Y') }} mySchool UG &middot; All rights reserved &middot; Made with &#10084;&#65039; in Uganda &#127482;&#127468;</div>
+            <div class="footer-copy">&copy; {{ date('Y') }} uSchool &middot; All rights reserved &middot; Made with &#10084;&#65039; in Uganda &#127482;&#127468;</div>
             <div class="footer-links-bottom">
                 <a href="{{ route('pages.privacy') }}">Privacy Policy</a>
                 <a href="{{ route('pages.terms') }}">Terms of Service</a>
@@ -2021,11 +2217,36 @@
     </footer>
 
     <script>
+        // Header scroll effect
         const hdr = document.getElementById('site-header');
         window.addEventListener('scroll', () => {
             hdr.classList.toggle('scrolled', window.scrollY > 30);
         }, {
             passive: true
+        });
+
+        // Mobile menu
+        const mobileMenu = document.getElementById('mobile-menu');
+        const openBtn = document.getElementById('hamburger-btn');
+        const closeBtn = document.getElementById('mobile-menu-close');
+        const overlay = document.getElementById('mobile-menu-overlay');
+
+        function openMobileMenu() {
+            mobileMenu.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        openBtn.addEventListener('click', openMobileMenu);
+        closeBtn.addEventListener('click', closeMobileMenu);
+        overlay.addEventListener('click', closeMobileMenu);
+
+        mobileMenu.querySelectorAll('.mobile-menu-links a').forEach(function(link) {
+            link.addEventListener('click', closeMobileMenu);
         });
     </script>
 </body>

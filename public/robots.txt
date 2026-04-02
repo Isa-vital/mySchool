@@ -1,2 +1,13 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /students
+Disallow: /staff
+Disallow: /guardians
+Disallow: /academic-years
+Disallow: /invoices
+Disallow: /payments
+Disallow: /settings
+
+Sitemap: https://schoolsystem.techmarketug.com/sitemap.xml

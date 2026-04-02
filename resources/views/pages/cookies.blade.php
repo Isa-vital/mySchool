@@ -1,12 +1,13 @@
 @extends('layouts.page')
 
 @section('title', 'Cookie Policy')
+@section('meta_description', 'Understand how uSchool uses cookies and similar technologies to improve your experience on our school management platform.')
 
 @section('content')
 <h1>Cookie Policy</h1>
 <p class="page-meta">Last updated: {{ date('F j, Y') }}</p>
 
-<p>This Cookie Policy explains how mySchool UG ("we", "our", "the platform") uses cookies and similar technologies when you access our platform.</p>
+<p>This Cookie Policy explains how uSchool ("we", "our", "the platform") uses cookies and similar technologies when you access our platform.</p>
 
 <h2>1. What Are Cookies?</h2>
 <p>Cookies are small text files stored on your device (computer, tablet, or phone) when you visit a website. They help websites remember your preferences and improve your experience.</p>
@@ -29,7 +30,7 @@
 </ul>
 
 <h2>3. Cookies We Do Not Use</h2>
-<p>mySchool UG does <strong>not</strong> use:</p>
+<p>uSchool does <strong>not</strong> use:</p>
 <ul>
     <li>Third-party advertising or tracking cookies.</li>
     <li>Social media tracking pixels.</li>
@@ -62,7 +63,7 @@
 <h2>7. Contact Us</h2>
 <p>If you have questions about our use of cookies, please contact us at:</p>
 <ul>
-    <li><strong>Email:</strong> hello@myschool.ug</li>
+    <li><strong>Email:</strong> hello@uschool.ug</li>
     <li><strong>Phone / WhatsApp:</strong> +256 700 000 000</li>
     <li><strong>Address:</strong> Kampala, Uganda</li>
 </ul>

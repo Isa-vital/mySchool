@@ -4,7 +4,27 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@yield('title') – mySchool UG</title>
+    <title>@yield('title') – uSchool</title>
+
+    {{-- SEO --}}
+    <meta name="description" content="@yield('meta_description', 'uSchool – Smarter school management for Ugandan primary and secondary schools.')" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="{{ url()->current() }}" />
+
+    {{-- Open Graph --}}
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:title" content="@yield('title') – uSchool" />
+    <meta property="og:description" content="@yield('meta_description', 'uSchool – Smarter school management for Ugandan primary and secondary schools.')" />
+    <meta property="og:image" content="{{ asset('img/logo/uschoollogo.png') }}" />
+    <meta property="og:site_name" content="uSchool" />
+
+    {{-- Favicon --}}
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('img/favicon_io/apple-touch-icon.png') }}" />
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/favicon_io/favicon-32x32.png') }}" />
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('img/favicon_io/favicon-16x16.png') }}" />
+    <link rel="manifest" href="{{ asset('img/favicon_io/site.webmanifest') }}" />
+    <meta name="theme-color" content="#1D9E75" />
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
     <style>
         *,
@@ -71,38 +91,10 @@
             gap: 10px;
         }
 
-        .logo-icon {
-            width: 38px;
+        .logo-img {
             height: 38px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--green), var(--green-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 800;
-            color: #fff;
-            font-family: var(--font-h);
-            letter-spacing: -1px;
-        }
-
-        .logo-text {
-            font-family: var(--font-h);
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        .logo-text span {
-            color: var(--green);
-        }
-
-        .logo-ug {
-            font-size: 10px;
-            background: var(--green-light);
-            color: var(--green-dark);
-            padding: 2px 8px;
-            border-radius: 99px;
-            font-weight: 700;
+            width: auto;
+            object-fit: contain;
         }
 
         .nav-right {
@@ -223,9 +215,7 @@
     <header>
         <div class="nav-inner">
             <a href="/" class="logo">
-                <div class="logo-icon">mS</div>
-                <div class="logo-text">my<span>School</span></div>
-                <span class="logo-ug">UG</span>
+                <img src="{{ asset('img/logo/uschoollogo.png') }}" alt="uSchool" class="logo-img" />
             </a>
             <div class="nav-right">
                 <a href="/" class="btn-back">&larr; Back to Home</a>
@@ -238,7 +228,7 @@
     </div>
 
     <footer>
-        <div class="footer-copy">&copy; {{ date('Y') }} mySchool UG &middot; All rights reserved</div>
+        <div class="footer-copy">&copy; {{ date('Y') }} uSchool &middot; All rights reserved</div>
         <div class="footer-links">
             <a href="{{ route('pages.privacy') }}">Privacy Policy</a>
             <a href="{{ route('pages.terms') }}">Terms of Service</a>

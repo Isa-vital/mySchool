@@ -1,18 +1,19 @@
 @extends('layouts.page')
 
 @section('title', 'Terms of Service')
+@section('meta_description', 'Read the uSchool Terms of Service. Understand the rules, responsibilities, and agreements for using our school management platform in Uganda.')
 
 @section('content')
 <h1>Terms of Service</h1>
 <p class="page-meta">Last updated: {{ date('F j, Y') }}</p>
 
-<p>These Terms of Service ("Terms") govern your use of the mySchool UG platform ("the platform", "we", "our"). By accessing or using the platform, you agree to be bound by these Terms.</p>
+<p>These Terms of Service ("Terms") govern your use of the uSchool platform ("the platform", "we", "our"). By accessing or using the platform, you agree to be bound by these Terms.</p>
 
 <h2>1. Acceptance of Terms</h2>
 <p>By creating an account or using the platform, you confirm that you are authorized to act on behalf of your school and that you agree to comply with these Terms. If you do not agree, you must not use the platform.</p>
 
 <h2>2. Description of Service</h2>
-<p>mySchool UG is a web-based school management platform designed for Ugandan Primary and Secondary schools. The platform provides tools for:</p>
+<p>uSchool is a web-based school management platform designed for Primary and Secondary schools. The platform provides tools for:</p>
 <ul>
     <li>Student enrollment and records management.</li>
     <li>Attendance tracking and parent notifications.</li>
@@ -42,7 +43,7 @@
 </ul>
 
 <h2>5. Data Ownership</h2>
-<p>Schools retain full ownership of all data entered into the platform, including student records, financial data, and academic information. mySchool UG does not claim ownership of your data. We act as a data processor on behalf of the school.</p>
+<p>Schools retain full ownership of all data entered into the platform, including student records, financial data, and academic information. uSchool does not claim ownership of your data. We act as a data processor on behalf of the school.</p>
 
 <h2>6. Subscription &amp; Payments</h2>
 <ul>
@@ -59,7 +60,7 @@
 <h2>8. Limitation of Liability</h2>
 <p>To the fullest extent permitted by Ugandan law:</p>
 <ul>
-    <li>mySchool UG is provided "as is" without warranties of any kind.</li>
+    <li>uSchool is provided "as is" without warranties of any kind.</li>
     <li>We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform.</li>
     <li>Our total liability shall not exceed the amount paid by your school in the 12 months preceding the claim.</li>
 </ul>
@@ -81,7 +82,7 @@
 <h2>12. Contact Us</h2>
 <p>For questions about these Terms, please contact us at:</p>
 <ul>
-    <li><strong>Email:</strong> hello@myschool.ug</li>
+    <li><strong>Email:</strong> hello@uschool.ug</li>
     <li><strong>Phone / WhatsApp:</strong> +256 700 000 000</li>
     <li><strong>Address:</strong> Kampala, Uganda</li>
 </ul>
