@@ -29,7 +29,12 @@ class FeeStructureController extends Controller
         $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
 
-        return view('fee-structures.index', compact('feeStructures', 'academicYears', 'classes'));
+        // CHANGED: the view references $structures, so expose it under that name
+        return view('fee-structures.index', [
+            'structures' => $feeStructures,
+            'academicYears' => $academicYears,
+            'classes' => $classes,
+        ]);
     }
 
     public function create()
@@ -37,8 +42,10 @@ class FeeStructureController extends Controller
         $feeTypes = FeeType::where('is_active', true)->orderBy('name')->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
         $academicYears = AcademicYear::with('terms')->orderBy('start_date', 'desc')->get();
+        // CHANGED: the view references $terms for the term dropdown
+        $terms = Term::orderBy('start_date')->get();
 
-        return view('fee-structures.create', compact('feeTypes', 'classes', 'academicYears'));
+        return view('fee-structures.create', compact('feeTypes', 'classes', 'academicYears', 'terms'));
     }
 
     public function store(StoreFeeStructureRequest $request)
@@ -54,8 +61,10 @@ class FeeStructureController extends Controller
         $feeTypes = FeeType::where('is_active', true)->orderBy('name')->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
         $academicYears = AcademicYear::with('terms')->orderBy('start_date', 'desc')->get();
+        // CHANGED: the view references $terms for the term dropdown
+        $terms = Term::orderBy('start_date')->get();
 
-        return view('fee-structures.edit', compact('feeStructure', 'feeTypes', 'classes', 'academicYears'));
+        return view('fee-structures.edit', compact('feeStructure', 'feeTypes', 'classes', 'academicYears', 'terms'));
     }
 
     public function update(UpdateFeeStructureRequest $request, FeeStructure $feeStructure)

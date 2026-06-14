@@ -6,6 +6,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\GuardianController;
 use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\TermController;
 use App\Http\Controllers\SchoolClassController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\TimetableController;
@@ -61,7 +62,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Students
     Route::middleware('permission:students.view')->group(function () {
         Route::get('students', [StudentController::class, 'index'])->name('students.index');
-        Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
+        Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show')->whereNumber('student');
     });
     Route::get('students/create', [StudentController::class, 'create'])->name('students.create')->middleware('permission:students.create');
     Route::post('students', [StudentController::class, 'store'])->name('students.store')->middleware('permission:students.create');
@@ -73,7 +74,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Staff
     Route::middleware('permission:staff.view')->group(function () {
         Route::get('staff', [StaffController::class, 'index'])->name('staff.index');
-        Route::get('staff/{staff}', [StaffController::class, 'show'])->name('staff.show');
+        Route::get('staff/{staff}', [StaffController::class, 'show'])->name('staff.show')->whereNumber('staff');
     });
     Route::get('staff/create', [StaffController::class, 'create'])->name('staff.create')->middleware('permission:staff.create');
     Route::post('staff', [StaffController::class, 'store'])->name('staff.store')->middleware('permission:staff.create');
@@ -85,7 +86,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Guardians
     Route::middleware('permission:guardians.view')->group(function () {
         Route::get('guardians', [GuardianController::class, 'index'])->name('guardians.index');
-        Route::get('guardians/{guardian}', [GuardianController::class, 'show'])->name('guardians.show');
+        Route::get('guardians/{guardian}', [GuardianController::class, 'show'])->name('guardians.show')->whereNumber('guardian');
     });
     Route::get('guardians/create', [GuardianController::class, 'create'])->name('guardians.create')->middleware('permission:guardians.create');
     Route::post('guardians', [GuardianController::class, 'store'])->name('guardians.store')->middleware('permission:guardians.create');
@@ -97,7 +98,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Academic Years
     Route::middleware('permission:academic_years.view')->group(function () {
         Route::get('academic-years', [AcademicYearController::class, 'index'])->name('academic-years.index');
-        Route::get('academic-years/{academic_year}', [AcademicYearController::class, 'show'])->name('academic-years.show');
+        Route::get('academic-years/{academic_year}', [AcademicYearController::class, 'show'])->name('academic-years.show')->whereNumber('academic_year');
     });
     Route::get('academic-years/create', [AcademicYearController::class, 'create'])->name('academic-years.create')->middleware('permission:academic_years.create');
     Route::post('academic-years', [AcademicYearController::class, 'store'])->name('academic-years.store')->middleware('permission:academic_years.create');
@@ -107,10 +108,19 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::patch('academic-years/{academic_year}', [AcademicYearController::class, 'update'])->middleware('permission:academic_years.edit');
     Route::delete('academic-years/{academic_year}', [AcademicYearController::class, 'destroy'])->name('academic-years.destroy')->middleware('permission:academic_years.delete');
 
+    // CHANGED: Terms management nested under each academic year
+    Route::get('academic-years/{academicYear}/terms', [TermController::class, 'index'])->name('academic-years.terms.index')->whereNumber('academicYear')->middleware('permission:academic_years.view');
+    Route::get('academic-years/{academicYear}/terms/create', [TermController::class, 'create'])->name('academic-years.terms.create')->whereNumber('academicYear')->middleware('permission:academic_years.create');
+    Route::post('academic-years/{academicYear}/terms', [TermController::class, 'store'])->name('academic-years.terms.store')->whereNumber('academicYear')->middleware('permission:academic_years.create');
+    Route::post('academic-years/{academicYear}/terms/{term}/set-current', [TermController::class, 'setCurrent'])->name('academic-years.terms.set-current')->whereNumber(['academicYear', 'term'])->middleware('permission:academic_years.edit');
+    Route::get('academic-years/{academicYear}/terms/{term}/edit', [TermController::class, 'edit'])->name('academic-years.terms.edit')->whereNumber(['academicYear', 'term'])->middleware('permission:academic_years.edit');
+    Route::put('academic-years/{academicYear}/terms/{term}', [TermController::class, 'update'])->name('academic-years.terms.update')->whereNumber(['academicYear', 'term'])->middleware('permission:academic_years.edit');
+    Route::delete('academic-years/{academicYear}/terms/{term}', [TermController::class, 'destroy'])->name('academic-years.terms.destroy')->whereNumber(['academicYear', 'term'])->middleware('permission:academic_years.delete');
+
     // Classes & Sections
     Route::middleware('permission:classes.view')->group(function () {
         Route::get('classes', [SchoolClassController::class, 'index'])->name('classes.index');
-        Route::get('classes/{class}', [SchoolClassController::class, 'show'])->name('classes.show');
+        Route::get('classes/{class}', [SchoolClassController::class, 'show'])->name('classes.show')->whereNumber('class');
     });
     Route::get('classes/create', [SchoolClassController::class, 'create'])->name('classes.create')->middleware('permission:classes.create');
     Route::post('classes', [SchoolClassController::class, 'store'])->name('classes.store')->middleware('permission:classes.create');
@@ -124,7 +134,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Subjects
     Route::middleware('permission:subjects.view')->group(function () {
         Route::get('subjects', [SubjectController::class, 'index'])->name('subjects.index');
-        Route::get('subjects/{subject}', [SubjectController::class, 'show'])->name('subjects.show');
+        Route::get('subjects/{subject}', [SubjectController::class, 'show'])->name('subjects.show')->whereNumber('subject');
     });
     Route::get('subjects/create', [SubjectController::class, 'create'])->name('subjects.create')->middleware('permission:subjects.create');
     Route::post('subjects', [SubjectController::class, 'store'])->name('subjects.store')->middleware('permission:subjects.create');
@@ -149,7 +159,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Exams
     Route::middleware('permission:exams.view')->group(function () {
         Route::get('exams', [ExamController::class, 'index'])->name('exams.index');
-        Route::get('exams/{exam}', [ExamController::class, 'show'])->name('exams.show');
+        Route::get('exams/{exam}', [ExamController::class, 'show'])->name('exams.show')->whereNumber('exam');
     });
     Route::get('exams/create', [ExamController::class, 'create'])->name('exams.create')->middleware('permission:exams.create');
     Route::post('exams', [ExamController::class, 'store'])->name('exams.store')->middleware('permission:exams.create');
@@ -168,12 +178,13 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Report Cards
     Route::get('report-cards', [ReportCardController::class, 'index'])->name('report-cards.index')->middleware('permission:report_cards.view');
     Route::get('report-cards/{student}/{exam}', [ReportCardController::class, 'show'])->name('report-cards.show')->middleware('permission:report_cards.view');
+    Route::put('report-cards/{student}/{exam}', [ReportCardController::class, 'update'])->name('report-cards.update')->middleware('permission:report_cards.view');
     Route::get('report-cards/{student}/{exam}/pdf', [ReportCardController::class, 'pdf'])->name('report-cards.pdf')->middleware('permission:report_cards.generate');
 
     // Fee Types
     Route::middleware('permission:fee_types.view')->group(function () {
         Route::get('fee-types', [FeeTypeController::class, 'index'])->name('fee-types.index');
-        Route::get('fee-types/{fee_type}', [FeeTypeController::class, 'show'])->name('fee-types.show');
+        Route::get('fee-types/{fee_type}', [FeeTypeController::class, 'show'])->name('fee-types.show')->whereNumber('fee_type');
     });
     Route::get('fee-types/create', [FeeTypeController::class, 'create'])->name('fee-types.create')->middleware('permission:fee_types.create');
     Route::post('fee-types', [FeeTypeController::class, 'store'])->name('fee-types.store')->middleware('permission:fee_types.create');
@@ -185,7 +196,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Fee Structures
     Route::middleware('permission:fee_structures.view')->group(function () {
         Route::get('fee-structures', [FeeStructureController::class, 'index'])->name('fee-structures.index');
-        Route::get('fee-structures/{fee_structure}', [FeeStructureController::class, 'show'])->name('fee-structures.show');
+        Route::get('fee-structures/{fee_structure}', [FeeStructureController::class, 'show'])->name('fee-structures.show')->whereNumber('fee_structure');
     });
     Route::get('fee-structures/create', [FeeStructureController::class, 'create'])->name('fee-structures.create')->middleware('permission:fee_structures.create');
     Route::post('fee-structures', [FeeStructureController::class, 'store'])->name('fee-structures.store')->middleware('permission:fee_structures.create');
@@ -213,7 +224,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Notices
     Route::middleware('permission:notices.view')->group(function () {
         Route::get('notices', [NoticeController::class, 'index'])->name('notices.index');
-        Route::get('notices/{notice}', [NoticeController::class, 'show'])->name('notices.show');
+        Route::get('notices/{notice}', [NoticeController::class, 'show'])->name('notices.show')->whereNumber('notice');
     });
     Route::get('notices/create', [NoticeController::class, 'create'])->name('notices.create')->middleware('permission:notices.create');
     Route::post('notices', [NoticeController::class, 'store'])->name('notices.store')->middleware('permission:notices.create');
@@ -231,7 +242,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Library - Books
     Route::middleware('permission:books.view')->group(function () {
         Route::get('books', [BookController::class, 'index'])->name('books.index');
-        Route::get('books/{book}', [BookController::class, 'show'])->name('books.show');
+        Route::get('books/{book}', [BookController::class, 'show'])->name('books.show')->whereNumber('book');
     });
     Route::get('books/create', [BookController::class, 'create'])->name('books.create')->middleware('permission:books.create');
     Route::post('books', [BookController::class, 'store'])->name('books.store')->middleware('permission:books.create');
@@ -248,7 +259,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Administration - Users
     Route::middleware('permission:users.view')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
-        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show')->whereNumber('user');
     });
     Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
     Route::post('users', [UserController::class, 'store'])->name('users.store')->middleware('permission:users.create');
@@ -262,7 +273,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Administration - Roles
     Route::middleware('permission:roles.view')->group(function () {
         Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show');
+        Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show')->whereNumber('role');
     });
     Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');
     Route::post('roles', [RoleController::class, 'store'])->name('roles.store')->middleware('permission:roles.create');

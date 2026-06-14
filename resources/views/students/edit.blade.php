@@ -32,6 +32,16 @@
                     @error('admission_number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">LIN (EMIS Number)</label>
+                    <input type="text" name="lin" value="{{ old('lin', $student->lin) }}" placeholder="Learner Identification Number" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    @error('lin') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">UNEB Index Number</label>
+                    <input type="text" name="uneb_index_number" value="{{ old('uneb_index_number', $student->uneb_index_number) }}" placeholder="e.g. U0001/042" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    @error('uneb_index_number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                     <select name="gender" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         <option value="">Select</option>
@@ -47,7 +57,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select name="status" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         @foreach(['active','graduated','transferred','withdrawn','suspended'] as $s)
-                            <option value="{{ $s }}" {{ old('status', $student->status) === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
+                        <option value="{{ $s }}" {{ old('status', $student->status) === $s ? 'selected' : '' }}>{{ ucfirst($s) }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -64,7 +74,7 @@
                     <select name="blood_group" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         <option value="">Select</option>
                         @foreach(['A+','A-','B+','B-','AB+','AB-','O+','O-'] as $bg)
-                            <option value="{{ $bg }}" {{ old('blood_group', $student->blood_group) === $bg ? 'selected' : '' }}>{{ $bg }}</option>
+                        <option value="{{ $bg }}" {{ old('blood_group', $student->blood_group) === $bg ? 'selected' : '' }}>{{ $bg }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -80,6 +90,13 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Admission Date</label>
                     <input type="date" name="admission_date" value="{{ old('admission_date', $student->admission_date?->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Boarding Status</label>
+                    <select name="boarding_status" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="day" {{ old('boarding_status', $student->boarding_status) === 'day' ? 'selected' : '' }}>Day Scholar</option>
+                        <option value="boarding" {{ old('boarding_status', $student->boarding_status) === 'boarding' ? 'selected' : '' }}>Boarding</option>
+                    </select>
+                </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
                     <textarea name="address" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">{{ old('address', $student->address) }}</textarea>
@@ -87,19 +104,41 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Photo</label>
                     @if($student->photo)
-                        <div class="mb-2">
-                            <img src="{{ Storage::url($student->photo) }}" class="w-16 h-16 rounded-lg object-cover" alt="">
-                        </div>
+                    <div class="mb-2">
+                        <img src="{{ Storage::url($student->photo) }}" class="w-16 h-16 rounded-lg object-cover" alt="">
+                    </div>
                     @endif
                     <input type="file" name="photo" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Previous School</label>
-                    <input type="text" name="previous_school" value="{{ old('previous_school', $student->previous_school) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Medical Conditions</label>
                     <textarea name="medical_conditions" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">{{ old('medical_conditions', $student->medical_conditions) }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {{-- Previous School --}}
+        {{-- CHANGED: dedicated previous school section (name, grade, attachment) --}}
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Previous School</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+                    <input type="text" name="previous_school" value="{{ old('previous_school', $student->previous_school) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    @error('previous_school') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Grade / Class Attended</label>
+                    <input type="text" name="previous_school_grade" value="{{ old('previous_school_grade', $student->previous_school_grade) }}" placeholder="e.g. P.6" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    @error('previous_school_grade') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Attachment <span class="text-gray-400">(report card / transfer letter)</span></label>
+                    @if($student->previous_school_attachment)
+                    <a href="{{ Storage::url($student->previous_school_attachment) }}" target="_blank" class="block text-xs mb-1 hover:underline" style="color: var(--primary-color);">View current attachment</a>
+                    @endif
+                    <input type="file" name="previous_school_attachment" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    @error('previous_school_attachment') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
         </div>

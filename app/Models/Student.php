@@ -10,6 +10,8 @@ class Student extends Model
     use LogsActivity;
     protected $fillable = [
         'admission_number',
+        'lin', // CHANGED: EMIS Learner Identification Number
+        'uneb_index_number', // CHANGED: UNEB candidate index number
         'first_name',
         'last_name',
         'other_names',
@@ -23,15 +25,47 @@ class Student extends Model
         'blood_group',
         'medical_conditions',
         'previous_school',
+        'previous_school_grade', // CHANGED: last grade/class attended at previous school
+        'previous_school_attachment', // CHANGED: transfer letter / previous report card file
         'admission_date',
         'photo',
         'status',
+        'boarding_status', // CHANGED: Uganda fit - day vs boarding scholar
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
         'admission_date' => 'date',
     ];
+
+    /**
+     * Generate the next sequential admission number based on the most recent student.
+     * Preserves the existing prefix and zero-padding (e.g. ADM00152 -> ADM00153).
+     */
+    public static function nextAdmissionNumber(): string
+    {
+        $last = static::orderByDesc('id')->value('admission_number');
+
+        $prefix = 'ADM';
+        $padLength = 5;
+        $number = 1;
+
+        if ($last && preg_match('/^([A-Za-z]*)(\d+)$/', $last, $m)) {
+            if ($m[1] !== '') {
+                $prefix = $m[1];
+            }
+            $padLength = strlen($m[2]);
+            $number = (int) $m[2] + 1;
+        }
+
+        // Guarantee uniqueness in case of gaps or concurrent inserts.
+        do {
+            $candidate = $prefix . str_pad((string) $number, $padLength, '0', STR_PAD_LEFT);
+            $number++;
+        } while (static::where('admission_number', $candidate)->exists());
+
+        return $candidate;
+    }
 
     public function guardians()
     {

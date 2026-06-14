@@ -7,12 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 class Grade extends Model
 {
     protected $fillable = [
-        'exam_id', 'student_id', 'subject_id', 'school_class_id',
-        'marks_obtained', 'grade_letter', 'remarks', 'graded_by',
+        'exam_id',
+        'student_id',
+        'subject_id',
+        'school_class_id',
+        'marks_obtained',
+        'ca_marks',
+        'grade_letter',
+        'achievement_level',
+        'remarks',
+        'graded_by',
     ];
 
     protected $casts = [
         'marks_obtained' => 'decimal:2',
+        'ca_marks' => 'decimal:2',
     ];
 
     public function exam()

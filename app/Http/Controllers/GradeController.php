@@ -87,6 +87,9 @@ class GradeController extends Controller
                     }
                 }
 
+                // Competency achievement level (new lower-secondary curriculum)
+                $achievementLevel = \App\Services\UgandaGrading::achievementLevel($marks);
+
                 Grade::updateOrCreate(
                     [
                         'exam_id' => $exam->id,
@@ -97,6 +100,7 @@ class GradeController extends Controller
                         'school_class_id' => $request->class_id,
                         'marks_obtained' => $marks,
                         'grade_letter' => $gradeLetter,
+                        'achievement_level' => $achievementLevel,
                         'remarks' => $gradeData['remarks'] ?? null,
                         'graded_by' => auth()->id(),
                     ]

@@ -31,6 +31,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 
+    <!-- SweetAlert2 (for success / error notifications) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
         :root {
             --primary-color: {
@@ -71,20 +74,70 @@
             </header>
             @endisset
 
-            {{-- Flash Messages --}}
-            @if(session('success'))
-            <div class="px-4 sm:px-6 lg:px-8 mt-4">
-                <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
-                    {{ session('success') }}
-                </div>
-            </div>
-            @endif
-            @if(session('error'))
-            <div class="px-4 sm:px-6 lg:px-8 mt-4">
-                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg" x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)">
-                    {{ session('error') }}
-                </div>
-            </div>
+            {{-- Flash Messages (rendered via SweetAlert2) --}}
+            {{-- CHANGED: replaced inline Alpine flash banners with SweetAlert2 toast/modal notifications.
+                 Flash payload is passed via a data element to keep PHP out of the JS block. --}}
+            @if(session('success') || session('error') || $errors->any())
+            <div id="flash-data"
+                data-success="{{ session('success') }}"
+                data-error="{{ session('error') }}"
+                data-errors="{{ $errors->any() ? json_encode($errors->all()) : '' }}"
+                hidden></div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var flash = document.getElementById('flash-data');
+                    if (!flash || typeof Swal === 'undefined') return;
+
+                    var primary = getComputedStyle(document.documentElement)
+                        .getPropertyValue('--primary-color').trim() || '#1e40af';
+
+                    var success = flash.dataset.success;
+                    var error = flash.dataset.error;
+                    var errors = flash.dataset.errors ? JSON.parse(flash.dataset.errors) : [];
+
+                    if (success) {
+                        Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true,
+                            didOpen: function(toast) {
+                                toast.addEventListener('mouseenter', Swal.stopTimer);
+                                toast.addEventListener('mouseleave', Swal.resumeTimer);
+                            }
+                        }).fire({
+                            icon: 'success',
+                            title: success
+                        });
+                    }
+
+                    if (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Oops...',
+                            text: error,
+                            confirmButtonColor: primary
+                        });
+                    }
+
+                    if (errors.length) {
+                        var list = '<ul style="text-align:left;margin:0;padding-left:1.2em;">';
+                        errors.forEach(function(e) {
+                            var div = document.createElement('div');
+                            div.textContent = e;
+                            list += '<li>' + div.innerHTML + '</li>';
+                        });
+                        list += '</ul>';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Please fix the following',
+                            html: list,
+                            confirmButtonColor: primary
+                        });
+                    }
+                });
+            </script>
             @endif
 
             {{-- Page Content --}}

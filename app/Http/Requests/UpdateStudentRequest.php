@@ -18,6 +18,8 @@ class UpdateStudentRequest extends FormRequest
             'last_name' => 'required|string|max:255',
             'other_names' => 'nullable|string|max:255',
             'admission_number' => 'required|string|unique:students,admission_number,' . $this->route('student')->id,
+            'lin' => 'nullable|string|max:30|unique:students,lin,' . $this->route('student')->id,
+            'uneb_index_number' => 'nullable|string|max:30',
             'gender' => 'nullable|in:male,female',
             'date_of_birth' => 'nullable|date|before:today',
             'nationality' => 'nullable|string|max:100',
@@ -28,8 +30,11 @@ class UpdateStudentRequest extends FormRequest
             'blood_group' => 'nullable|string|max:5',
             'medical_conditions' => 'nullable|string|max:2000',
             'previous_school' => 'nullable|string|max:255',
+            'previous_school_grade' => 'nullable|string|max:100',
+            'previous_school_attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:4096',
             'admission_date' => 'nullable|date',
             'status' => 'nullable|in:active,graduated,transferred,withdrawn,suspended',
+            'boarding_status' => 'nullable|in:day,boarding',
             'photo' => 'nullable|image|max:2048',
         ];
     }

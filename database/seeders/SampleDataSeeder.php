@@ -24,6 +24,11 @@ use App\Models\ExamSchedule;
 use App\Models\Grade;
 use App\Models\GradingScale;
 use App\Models\GradingScaleRange;
+use App\Models\SubjectCombination;
+use App\Models\Requirement;
+use App\Models\RequirementSubmission;
+use App\Models\ReportCard;
+use App\Services\UgandaGrading;
 use App\Models\TimetableSlot;
 use App\Models\Notice;
 use App\Models\BookCategory;
@@ -62,6 +67,20 @@ class SampleDataSeeder extends Seeder
 
         $this->command->info('  ✓ Academic years & terms');
 
+        // ── Nursery Classes (Baby, Middle, Top) ────────────────
+        $nurseryNames = ['Baby Class', 'Middle Class', 'Top Class'];
+        foreach ($nurseryNames as $idx => $nName) {
+            $nc = SchoolClass::create([
+                'name' => $nName,
+                'code' => 'N' . ($idx + 1),
+                'level' => $idx - 2, // -2, -1, 0 so they sort before P.1
+                'category' => 'nursery',
+                'description' => $nName,
+                'is_active' => true,
+            ]);
+            Section::create(['school_class_id' => $nc->id, 'name' => 'A', 'capacity' => 30, 'is_active' => true]);
+        }
+
         // ── Primary Classes (P.1 – P.7) ────────────────────────
         $primaryClasses = [];
         for ($i = 1; $i <= 7; $i++) {
@@ -69,6 +88,7 @@ class SampleDataSeeder extends Seeder
                 'name' => "P.$i",
                 'code' => "P$i",
                 'level' => $i,
+                'category' => $i <= 4 ? 'lower_primary' : 'upper_primary',
                 'description' => "Primary $i",
                 'is_active' => true,
             ]);
@@ -91,6 +111,7 @@ class SampleDataSeeder extends Seeder
                 'name' => "S.$i",
                 'code' => "S$i",
                 'level' => 7 + $i,
+                'category' => $i <= 4 ? 'o_level' : 'a_level',
                 'description' => "Senior $i",
                 'is_active' => true,
             ]);
@@ -108,35 +129,39 @@ class SampleDataSeeder extends Seeder
 
         // ── Subjects ────────────────────────────────────────────
         $primarySubjects = [];
-        foreach ([
-            ['English', 'ENG', 'core'],
-            ['Mathematics', 'MATH', 'core'],
-            ['Science', 'SCI', 'core'],
-            ['Social Studies', 'SST', 'core'],
-            ['Luganda', 'LUG', 'core'],
-            ['Religious Education', 'RE', 'core'],
-            ['Creative Arts', 'CA', 'elective'],
-            ['Physical Education', 'PE', 'elective'],
-        ] as [$name, $code, $type]) {
+        foreach (
+            [
+                ['English', 'ENG', 'core'],
+                ['Mathematics', 'MATH', 'core'],
+                ['Science', 'SCI', 'core'],
+                ['Social Studies', 'SST', 'core'],
+                ['Luganda', 'LUG', 'core'],
+                ['Religious Education', 'RE', 'core'],
+                ['Creative Arts', 'CA', 'elective'],
+                ['Physical Education', 'PE', 'elective'],
+            ] as [$name, $code, $type]
+        ) {
             $s = Subject::create(['name' => $name, 'code' => $code, 'type' => $type, 'is_active' => true]);
             $primarySubjects[] = $s;
         }
 
         $secondarySubjects = [];
-        foreach ([
-            ['English Language', 'ELNG', 'core'],
-            ['Mathematics', 'MTHS', 'core'],
-            ['Physics', 'PHY', 'core'],
-            ['Chemistry', 'CHEM', 'core'],
-            ['Biology', 'BIO', 'core'],
-            ['History', 'HIST', 'core'],
-            ['Geography', 'GEO', 'core'],
-            ['Kiswahili', 'KSW', 'elective'],
-            ['Agriculture', 'AGR', 'elective'],
-            ['Computer Studies', 'ICT', 'elective'],
-            ['Commerce', 'COM', 'elective'],
-            ['Fine Art', 'FA', 'elective'],
-        ] as [$name, $code, $type]) {
+        foreach (
+            [
+                ['English Language', 'ELNG', 'core'],
+                ['Mathematics', 'MTHS', 'core'],
+                ['Physics', 'PHY', 'core'],
+                ['Chemistry', 'CHEM', 'core'],
+                ['Biology', 'BIO', 'core'],
+                ['History', 'HIST', 'core'],
+                ['Geography', 'GEO', 'core'],
+                ['Kiswahili', 'KSW', 'elective'],
+                ['Agriculture', 'AGR', 'elective'],
+                ['Computer Studies', 'ICT', 'elective'],
+                ['Commerce', 'COM', 'elective'],
+                ['Fine Art', 'FA', 'elective'],
+            ] as [$name, $code, $type]
+        ) {
             $s = Subject::create(['name' => $name, 'code' => $code, 'type' => $type, 'is_active' => true]);
             $secondarySubjects[] = $s;
         }
@@ -165,7 +190,7 @@ class SampleDataSeeder extends Seeder
             ['first_name' => 'Ronald',   'last_name' => 'Kato',       'gender' => 'Male',   'designation' => 'Teacher',         'department' => 'Primary',        'qualification' => 'Grade III Teacher Cert.'],
             ['first_name' => 'Annet',    'last_name' => 'Nambi',      'gender' => 'Female', 'designation' => 'Teacher',         'department' => 'Primary',        'qualification' => 'Dip. Primary Ed. Kyambogo'],
             ['first_name' => 'Ivan',     'last_name' => 'Byaruhanga', 'gender' => 'Male',   'designation' => 'Teacher',         'department' => 'ICT',            'qualification' => 'B.IT Makerere University'],
-            ['first_name' => 'Christine','last_name' => 'Auma',       'gender' => 'Female', 'designation' => 'Matron',          'department' => 'Welfare',        'qualification' => 'Dip. Social Work IUIU'],
+            ['first_name' => 'Christine', 'last_name' => 'Auma',       'gender' => 'Female', 'designation' => 'Matron',          'department' => 'Welfare',        'qualification' => 'Dip. Social Work IUIU'],
             ['first_name' => 'George',   'last_name' => 'Odongo',     'gender' => 'Male',   'designation' => 'Games Master',    'department' => 'Sports',         'qualification' => 'Dip. Sports Science MUBS'],
             ['first_name' => 'Betty',    'last_name' => 'Nankya',     'gender' => 'Female', 'designation' => 'Librarian',       'department' => 'Library',        'qualification' => 'B.LISM East African S. of LIS'],
             ['first_name' => 'Julius',   'last_name' => 'Mpanga',     'gender' => 'Male',   'designation' => 'Secretary',       'department' => 'Administration', 'qualification' => 'Dip. Secretarial Studies'],
@@ -257,6 +282,7 @@ class SampleDataSeeder extends Seeder
 
                     $student = Student::create([
                         'admission_number' => 'ADM' . str_pad($studentIndex, 5, '0', STR_PAD_LEFT),
+                        'lin' => 'UG' . fake()->unique()->numerify('##########'), // EMIS Learner Identification Number
                         'first_name' => $firstName,
                         'last_name' => $lastName,
                         'other_names' => fake()->optional(0.3)->randomElement(['Mukisa', 'Kisakye', 'Babirye', 'Wasswa', 'Nabukeera', 'Kiggundu']),
@@ -271,6 +297,7 @@ class SampleDataSeeder extends Seeder
                         'previous_school' => fake()->optional(0.4)->randomElement(['Bright Future PS', 'St. Joseph PS Naggalama', 'Kampala Parents School', 'Greenhill Academy', 'St. Mary\'s Kisubi', null]),
                         'admission_date' => fake()->dateTimeBetween('-3 years', '-1 month')->format('Y-m-d'),
                         'status' => 'active',
+                        'boarding_status' => $class->level >= 8 ? fake()->randomElement(['day', 'boarding', 'boarding']) : 'day',
                     ]);
 
                     // Attach guardian (pair guardians by family)
@@ -279,12 +306,16 @@ class SampleDataSeeder extends Seeder
                     $motherIndex = $fatherIndex + 1;
                     if (isset($guardianRecords[$fatherIndex])) {
                         DB::table('student_guardian')->insert([
-                            'student_id' => $student->id, 'guardian_id' => $guardianRecords[$fatherIndex]->id, 'is_primary' => true,
+                            'student_id' => $student->id,
+                            'guardian_id' => $guardianRecords[$fatherIndex]->id,
+                            'is_primary' => true,
                         ]);
                     }
                     if (isset($guardianRecords[$motherIndex])) {
                         DB::table('student_guardian')->insert([
-                            'student_id' => $student->id, 'guardian_id' => $guardianRecords[$motherIndex]->id, 'is_primary' => false,
+                            'student_id' => $student->id,
+                            'guardian_id' => $guardianRecords[$motherIndex]->id,
+                            'is_primary' => false,
                         ]);
                     }
 
@@ -324,11 +355,20 @@ class SampleDataSeeder extends Seeder
 
         // ── Fee Types & Structures ──────────────────────────────
         $feeTypes = [];
-        foreach ([
-            'Tuition Fee', 'Registration Fee', 'Examination Fee', 'Library Fee',
-            'Computer Lab Fee', 'Sports Fee', 'Medical Fee', 'PTA Contribution',
-            'Boarding Fee', 'Uniform Fee',
-        ] as $ft) {
+        foreach (
+            [
+                'Tuition Fee',
+                'Registration Fee',
+                'Examination Fee',
+                'Library Fee',
+                'Computer Lab Fee',
+                'Sports Fee',
+                'Medical Fee',
+                'PTA Contribution',
+                'Boarding Fee',
+                'Uniform Fee',
+            ] as $ft
+        ) {
             $feeTypes[$ft] = FeeType::create(['name' => $ft, 'is_active' => true]);
         }
 
@@ -483,6 +523,7 @@ class SampleDataSeeder extends Seeder
                     'school_class_id' => $class->id,
                     'marks_obtained' => $marks,
                     'grade_letter' => $gradeLetter,
+                    'achievement_level' => UgandaGrading::achievementLevel($marks),
                     'graded_by' => $admin?->id,
                 ]);
                 $gradeCount++;
@@ -490,14 +531,85 @@ class SampleDataSeeder extends Seeder
         }
         $this->command->info("  ✓ Exam & grades ($gradeCount grade records)");
 
+        // ── A-Level Subject Combinations ────────────────────────
+        $subjByCode = collect($secondarySubjects)->keyBy('code');
+        $combosDef = [
+            ['PCM', 'Physics, Chemistry, Mathematics', ['PHY', 'CHEM', 'MTHS']],
+            ['PCB', 'Physics, Chemistry, Biology',     ['PHY', 'CHEM', 'BIO']],
+            ['HGC', 'History, Geography, Commerce',    ['HIST', 'GEO', 'COM']],
+        ];
+        $combos = [];
+        foreach ($combosDef as [$code, $name, $codes]) {
+            $combo = SubjectCombination::create(['code' => $code, 'name' => $name, 'level' => 'a_level', 'is_active' => true]);
+            foreach ($codes as $sc) {
+                if (isset($subjByCode[$sc])) {
+                    $combo->subjects()->attach($subjByCode[$sc]->id, ['is_principal' => true]);
+                }
+            }
+            $combos[] = $combo;
+        }
+        // Assign combinations to A-level (S.5 & S.6) enrolments
+        $aLevelClassIds = collect($secondaryClasses)->filter(fn($c) => $c->level >= 12)->pluck('id');
+        Enrollment::whereIn('school_class_id', $aLevelClassIds)->get()->each(function ($enr) use ($combos) {
+            $enr->update(['subject_combination_id' => $combos[array_rand($combos)]->id]);
+        });
+        $this->command->info('  ✓ A-level subject combinations');
+
+        // ── School Requirements (scholastic materials) ──────────
+        $reqDefs = [
+            ['Ream of Paper', 2, 'reams'],
+            ['Toilet Paper', 4, 'rolls'],
+            ['Broom', 1, 'pieces'],
+            ['Liquid Soap', 2, 'litres'],
+            ['Jik / Bleach', 1, 'litres'],
+        ];
+        foreach ($reqDefs as [$rName, $qty, $unit]) {
+            Requirement::create([
+                'name' => $rName,
+                'academic_year_id' => $ay2026->id,
+                'term_id' => $term1->id,
+                'quantity' => $qty,
+                'unit' => $unit,
+                'is_active' => true,
+            ]);
+        }
+        $this->command->info('  ✓ School requirements');
+
+        // ── Report Card Remarks (for first 20 students) ─────────
+        $conducts = ['Excellent', 'Very Good', 'Good', 'Fair'];
+        $ctComments = ['A hardworking student. Keep it up.', 'Good effort, but can do better.', 'Needs to improve in sciences.', 'Excellent performance this term.'];
+        $htComments = ['Promoted to the next class.', 'Well done, keep focused.', 'Put in more effort next term.', 'A promising learner.'];
+        foreach (array_slice($studentRecords, 0, 20) as $rec) {
+            $student = $rec['student'];
+            $studentGrades = Grade::where('exam_id', $botExam->id)->where('student_id', $student->id)->pluck('marks_obtained');
+            $total = $studentGrades->sum();
+            $avg = $studentGrades->count() ? round($total / $studentGrades->count(), 2) : 0;
+            ReportCard::create([
+                'student_id' => $student->id,
+                'exam_id' => $botExam->id,
+                'total_marks' => $total,
+                'average' => $avg,
+                'conduct' => $conducts[array_rand($conducts)],
+                'class_teacher_comment' => $ctComments[array_rand($ctComments)],
+                'head_teacher_comment' => $htComments[array_rand($htComments)],
+                'next_term_begins' => '2026-05-25',
+            ]);
+        }
+        $this->command->info('  ✓ Report card remarks');
+
         // ── Timetable (Mon–Fri for S.1 A as example) ────────────
         $s1 = $secondaryClasses[1];
         $s1SectionA = Section::where('school_class_id', $s1->id)->where('name', 'A')->first();
         $teachers = Staff::where('designation', 'Teacher')->get();
         $timeSlots = [
-            ['08:00', '08:40'], ['08:40', '09:20'], ['09:20', '10:00'],
-            ['10:30', '11:10'], ['11:10', '11:50'], ['11:50', '12:30'],
-            ['14:00', '14:40'], ['14:40', '15:20'],
+            ['08:00', '08:40'],
+            ['08:40', '09:20'],
+            ['09:20', '10:00'],
+            ['10:30', '11:10'],
+            ['11:10', '11:50'],
+            ['11:50', '12:30'],
+            ['14:00', '14:40'],
+            ['14:40', '15:20'],
         ];
         $rooms = ['Room 1', 'Room 2', 'Lab 1', 'Room 3', 'Hall', 'Computer Lab'];
 
@@ -552,7 +664,7 @@ class SampleDataSeeder extends Seeder
             ['title' => 'Abyssinian Chronicles',                    'author' => 'Moses Isegawa',         'isbn' => '9789970000009', 'publisher' => 'Picador Africa',      'publish_year' => 2000, 'category' => 'Ugandan Literature', 'copies' => 10, 'shelf' => 'D3'],
             ['title' => 'Song of Lawino',                           'author' => 'Okot p\'Bitek',         'isbn' => '9789970000010', 'publisher' => 'East African Pub.',   'publish_year' => 1966, 'category' => 'Ugandan Literature', 'copies' => 15, 'shelf' => 'D4'],
             ['title' => 'The Concise Oxford English Dictionary',     'author' => 'Oxford',                'isbn' => '9789970000011', 'publisher' => 'OUP',                 'publish_year' => 2020, 'category' => 'Reference',          'copies' => 5,  'shelf' => 'E1'],
-            ['title' => 'Holy Bible (Good News Edition)',            'author' => 'Bible Society',         'isbn' => '9789970000012', 'publisher' => 'Bible Society Uganda','publish_year' => 2015, 'category' => 'Religious',          'copies' => 10, 'shelf' => 'F1'],
+            ['title' => 'Holy Bible (Good News Edition)',            'author' => 'Bible Society',         'isbn' => '9789970000012', 'publisher' => 'Bible Society Uganda', 'publish_year' => 2015, 'category' => 'Religious',          'copies' => 10, 'shelf' => 'F1'],
             ['title' => 'Understanding Agriculture for S1-S4',      'author' => 'J. Tumuhairwe',         'isbn' => '9789970000013', 'publisher' => 'MK Publishers',       'publish_year' => 2021, 'category' => 'Textbooks',          'copies' => 14, 'shelf' => 'A3'],
             ['title' => 'ICT for Uganda Secondary Schools',         'author' => 'S. Okunna',             'isbn' => '9789970000014', 'publisher' => 'Longhorn Uganda',     'publish_year' => 2023, 'category' => 'Textbooks',          'copies' => 20, 'shelf' => 'A4'],
             ['title' => 'Kintu',                                    'author' => 'Jennifer Nansubuga Makumbi', 'isbn' => '9789970000015', 'publisher' => 'Transit Books',  'publish_year' => 2018, 'category' => 'Ugandan Literature', 'copies' => 8,  'shelf' => 'D5'],

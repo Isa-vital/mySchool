@@ -11,6 +11,7 @@ use App\Models\Enrollment;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -41,7 +42,7 @@ class StudentController extends Controller
             }
         }
 
-        $students = $query->with(['enrollments' => function ($q) use ($classes) {
+        $students = $query->with(['enrollments' => function ($q) {
             $currentYear = AcademicYear::current();
             if ($currentYear) {
                 $q->where('academic_year_id', $currentYear->id)->with(['schoolClass', 'section']);
@@ -56,15 +57,26 @@ class StudentController extends Controller
     {
         $classes = SchoolClass::active()->with('sections')->orderBy('level')->get();
         $academicYear = AcademicYear::current();
-        return view('students.create', compact('classes', 'academicYear'));
+        // CHANGED: suggest the next sequential admission number (e.g. ADM00152 -> ADM00153)
+        $nextAdmissionNumber = Student::nextAdmissionNumber();
+        return view('students.create', compact('classes', 'academicYear', 'nextAdmissionNumber'));
     }
 
     public function store(StoreStudentRequest $request)
     {
         $validated = $request->validated();
 
+        // CHANGED: always generate the admission number server-side so it cannot be tampered
+        // with and stays sequential even under concurrent submissions.
+        $validated['admission_number'] = Student::nextAdmissionNumber();
+
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('students', 'public');
+        }
+
+        // CHANGED: store previous school attachment (transfer letter / report card)
+        if ($request->hasFile('previous_school_attachment')) {
+            $validated['previous_school_attachment'] = $request->file('previous_school_attachment')->store('students/previous-school', 'public');
         }
 
         $student = Student::create($validated);
@@ -136,6 +148,14 @@ class StudentController extends Controller
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('students', 'public');
+        }
+
+        // CHANGED: replace previous school attachment if a new file is uploaded
+        if ($request->hasFile('previous_school_attachment')) {
+            if ($student->previous_school_attachment) {
+                Storage::disk('public')->delete($student->previous_school_attachment);
+            }
+            $validated['previous_school_attachment'] = $request->file('previous_school_attachment')->store('students/previous-school', 'public');
         }
 
         $student->update($validated);

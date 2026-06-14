@@ -45,14 +45,16 @@ class SchoolClassController extends Controller
     public function show(SchoolClass $class)
     {
         $class->load(['sections', 'subjects']);
-        return view('classes.show', compact('class'));
+        // CHANGED: the view references $schoolClass, so expose it under that name
+        return view('classes.show', ['schoolClass' => $class]);
     }
 
     public function edit(SchoolClass $class)
     {
         $class->load(['sections', 'subjects']);
         $subjects = Subject::active()->orderBy('name')->get();
-        return view('classes.edit', compact('class', 'subjects'));
+        // CHANGED: the view references $schoolClass, so expose it under that name
+        return view('classes.edit', ['schoolClass' => $class, 'subjects' => $subjects]);
     }
 
     public function update(UpdateSchoolClassRequest $request, SchoolClass $class)

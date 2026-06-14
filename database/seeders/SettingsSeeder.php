@@ -18,7 +18,9 @@ class SettingsSeeder extends Seeder
             ['key' => 'school_email', 'value' => '', 'type' => 'text', 'group' => 'general', 'label' => 'Email Address', 'description' => 'Main contact email address', 'sort_order' => 5],
             ['key' => 'school_website', 'value' => '', 'type' => 'text', 'group' => 'general', 'label' => 'Website', 'description' => 'School website URL', 'sort_order' => 6],
             ['key' => 'school_registration_number', 'value' => '', 'type' => 'text', 'group' => 'general', 'label' => 'Registration Number', 'description' => 'Official registration or license number', 'sort_order' => 7],
-            ['key' => 'timezone', 'value' => 'Africa/Kampala', 'type' => 'text', 'group' => 'general', 'label' => 'Timezone', 'description' => 'System timezone', 'sort_order' => 8],
+            ['key' => 'school_emis_number', 'value' => '', 'type' => 'text', 'group' => 'general', 'label' => 'EMIS Number', 'description' => 'School EMIS number assigned by the Ministry of Education and Sports', 'sort_order' => 8],
+            ['key' => 'uneb_centre_number', 'value' => '', 'type' => 'text', 'group' => 'general', 'label' => 'UNEB Centre Number', 'description' => 'UNEB examination centre number for the school', 'sort_order' => 9],
+            ['key' => 'timezone', 'value' => 'Africa/Kampala', 'type' => 'text', 'group' => 'general', 'label' => 'Timezone', 'description' => 'System timezone', 'sort_order' => 10],
 
             // Branding
             ['key' => 'school_logo', 'value' => '', 'type' => 'image', 'group' => 'branding', 'label' => 'School Logo', 'description' => 'Main school logo (recommended: 200x200px)', 'sort_order' => 1],

@@ -12,6 +12,7 @@ class Enrollment extends Model
         'student_id',
         'school_class_id',
         'section_id',
+        'subject_combination_id', // CHANGED: Uganda fit - A-level combination
         'academic_year_id',
         'roll_number',
         'status',
@@ -30,6 +31,11 @@ class Enrollment extends Model
     public function section()
     {
         return $this->belongsTo(Section::class);
+    }
+
+    public function subjectCombination()
+    {
+        return $this->belongsTo(SubjectCombination::class);
     }
 
     public function academicYear()
