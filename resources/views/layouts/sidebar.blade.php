@@ -162,6 +162,9 @@
         </x-sidebar-link>
         @endcan
         @can('settings.view')
+        <x-sidebar-link href="{{ route('demo-requests.index') }}" :active="request()->routeIs('demo-requests.*')" icon="inbox">
+            Demo Requests
+        </x-sidebar-link>
         <x-sidebar-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')" icon="cog">
             Settings
         </x-sidebar-link>

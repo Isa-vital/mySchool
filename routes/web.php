@@ -39,7 +39,10 @@ Route::get('/terms', [PageController::class, 'terms'])->name('pages.terms');
 Route::get('/cookies', [PageController::class, 'cookies'])->name('pages.cookies');
 
 // Demo request form
-Route::post('/demo-request', [DemoRequestController::class, 'store'])->name('demo.request');
+// CHANGED: added throttle (anti-bot rate limiting) — max 5 submissions/min per IP
+Route::post('/demo-request', [DemoRequestController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('demo.request');
 
 // Pending approval page (auth required, but no approval needed)
 Route::middleware(['auth', 'verified'])->get('/approval/pending', function () {
@@ -285,6 +288,12 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Administration - Settings
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index')->middleware('permission:settings.view');
     Route::post('settings', [SettingController::class, 'update'])->name('settings.update')->middleware('permission:settings.edit');
+
+    // Administration - Demo Requests (leads from the public landing page)
+    // CHANGED: added admin management for website demo requests
+    Route::get('demo-requests', [DemoRequestController::class, 'index'])->name('demo-requests.index')->middleware('permission:settings.view');
+    Route::post('demo-requests/{demoRequest}/contacted', [DemoRequestController::class, 'markContacted'])->name('demo-requests.contacted')->whereNumber('demoRequest')->middleware('permission:settings.edit');
+    Route::delete('demo-requests/{demoRequest}', [DemoRequestController::class, 'destroy'])->name('demo-requests.destroy')->whereNumber('demoRequest')->middleware('permission:settings.edit');
 
     // Parent Portal
     Route::prefix('parent-portal')->name('parent.')->middleware('role:Parent')->group(function () {

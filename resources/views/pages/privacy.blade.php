@@ -72,8 +72,8 @@
 <h2>9. Contact Us</h2>
 <p>If you have questions about this Privacy Policy, please contact us at:</p>
 <ul>
-    <li><strong>Email:</strong> hello@uschool.ug</li>
-    <li><strong>Phone / WhatsApp:</strong> +256 700 000 000</li>
+    <li><strong>Email:</strong> info@schoolsystem.techmarketug.com</li>
+    <li><strong>Phone / WhatsApp:</strong> +256 776 121 422</li>
     <li><strong>Address:</strong> Kampala, Uganda</li>
 </ul>
 @endsection

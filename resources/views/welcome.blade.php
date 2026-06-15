@@ -50,15 +50,9 @@
             "offers": {
                 "@@type": "AggregateOffer",
                 "priceCurrency": "UGX",
-                "lowPrice": "750000",
-                "highPrice": "1300000",
+                "lowPrice": "250000",
+                "highPrice": "460000",
                 "offerCount": "3"
-            },
-            "aggregateRating": {
-                "@@type": "AggregateRating",
-                "ratingValue": "4.9",
-                "reviewCount": "120",
-                "bestRating": "5"
             },
             "publisher": {
                 "@@type": "Organization",
@@ -67,7 +61,8 @@
                 "logo": "{{ asset('img/logo/uschoollogo.png') }}",
                 "contactPoint": {
                     "@@type": "ContactPoint",
-                    "telephone": "+256-700-000-000",
+                    "telephone": "+256-776-121-422",
+                    "email": "info@schoolsystem.techmarketug.com",
                     "contactType": "customer service",
                     "areaServed": "UG",
                     "availableLanguage": "English"
@@ -1739,7 +1734,7 @@
                 <a href="#features">Features</a>
                 <a href="#how">How it works</a>
                 <a href="#pricing">Pricing</a>
-                <a href="#testimonials">Reviews</a>
+                <a href="#testimonials">Why uSchool</a>
                 <a href="#contact">Contact</a>
             </nav>
             <div class="nav-right">
@@ -1772,7 +1767,7 @@
                 <a href="#features">Features</a>
                 <a href="#how">How it works</a>
                 <a href="#pricing">Pricing</a>
-                <a href="#testimonials">Reviews</a>
+                <a href="#testimonials">Why uSchool</a>
                 <a href="#contact">Contact</a>
             </nav>
             <div class="mobile-menu-actions">
@@ -1801,7 +1796,7 @@
                     <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=face" alt="" />
                     <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=64&h=64&fit=crop&crop=face" alt="" />
                 </div>
-                <div class="trust-text">Trusted by <strong>120+ schools</strong> across Uganda</div>
+                <div class="trust-text">Now welcoming our <strong>first schools</strong> across Uganda</div>
             </div>
         </div>
         <div class="hero-right">
@@ -1818,16 +1813,16 @@
             </div>
             <div class="hero-stats-bar">
                 <div class="hs-item">
-                    <div class="hs-num">120+</div>
-                    <div class="hs-lbl">Schools</div>
+                    <div class="hs-num">P1&ndash;S6</div>
+                    <div class="hs-lbl">Full coverage</div>
                 </div>
                 <div class="hs-item">
-                    <div class="hs-num">48k+</div>
-                    <div class="hs-lbl">Students</div>
+                    <div class="hs-num">10+</div>
+                    <div class="hs-lbl">Modules</div>
                 </div>
                 <div class="hs-item">
-                    <div class="hs-num">98%</div>
-                    <div class="hs-lbl">Satisfaction</div>
+                    <div class="hs-num">100%</div>
+                    <div class="hs-lbl">Web-based</div>
                 </div>
             </div>
         </div>
@@ -1912,9 +1907,9 @@
                     <p>Set up fee structures once and let the system handle the rest. Record payments, track balances, and send automatic reminders to parents &mdash; no more manual spreadsheets or endless phone calls.</p>
                     <ul class="feat-list">
                         <li>Customizable fee structures per class and per term</li>
-                        <li>Mobile money, bank transfer and cash payment recording</li>
-                        <li>Automatic SMS reminders for outstanding balances</li>
-                        <li>One-click fee statements and receipts for parents</li>
+                        <li>Record cash, bank, mobile money &amp; cheque payments</li>
+                        <li>Automatic invoices with outstanding balance tracking</li>
+                        <li>One-click PDF fee statements and receipts for parents</li>
                     </ul>
                     <a class="feat-link" href="#contact">Explore fee management &rarr;</a>
                 </div>
@@ -1927,20 +1922,20 @@
                     <div class="feat-img-badge">
                         <div class="fib-icon fi-b">&#128241;</div>
                         <div>
-                            <div class="fib-t1">23 parent alerts sent today</div>
-                            <div class="fib-t2">Attendance &amp; fees</div>
+                            <div class="fib-t1">Parent &amp; teacher portals</div>
+                            <div class="fib-t2">Attendance &amp; results</div>
                         </div>
                     </div>
                 </div>
                 <div class="feat-content">
                     <div class="chip">Attendance &amp; Communication</div>
-                    <h3>Keep parents informed, automatically</h3>
-                    <p>Mark attendance in seconds and let the system instantly notify parents when their child is absent. Send fee alerts, school announcements, and report card notifications directly to phones.</p>
+                    <h3>Keep teachers and parents connected</h3>
+                    <p>Mark daily attendance per class in seconds. Share announcements on the notice board, send in-app messages, and keep parents updated through their own portal &mdash; with email notifications for invoices, payments, and results.</p>
                     <ul class="feat-list">
                         <li>Per-class daily attendance with one-tap marking</li>
-                        <li>Instant SMS alerts to parents on absences</li>
-                        <li>Broadcast school announcements to all parents</li>
-                        <li>Parent portal to view attendance and fee balance</li>
+                        <li>School notice board and in-app messaging</li>
+                        <li>Email notifications for invoices, payments &amp; results</li>
+                        <li>Parent portal to view attendance, results and fee balance</li>
                     </ul>
                     <a class="feat-link" href="#contact">Explore communication tools &rarr;</a>
                 </div>
@@ -1952,7 +1947,7 @@
                     <div class="card-body">
                         <div class="card-icon" style="background:#e1f5ee;">&#128202;</div>
                         <h4>Gradebook &amp; Report Cards</h4>
-                        <p>Enter marks once and auto-generate print-ready report cards for every student, formatted for Uganda's curriculum.</p>
+                        <p>Enter marks once and auto-generate print-ready PDF report cards with UNEB-style grading and EMIS / LIN student numbers.</p>
                     </div>
                 </div>
                 <div class="card">
@@ -1969,6 +1964,22 @@
                         <div class="card-icon" style="background:#fbeaf0;">&#128105;&#8205;&#127979;</div>
                         <h4>Staff Management</h4>
                         <p>Manage teacher profiles, subject assignments, and class timetables &mdash; all inside the same platform.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-img"><img src="https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=600&h=320&fit=crop" alt="School library books" /></div>
+                    <div class="card-body">
+                        <div class="card-icon" style="background:#faeeda;">&#128218;</div>
+                        <h4>Library Management</h4>
+                        <p>Catalogue books, track issues and returns, and keep your school library organised without paper registers.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-img"><img src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=600&h=320&fit=crop" alt="Timetable and exam schedule" /></div>
+                    <div class="card-body">
+                        <div class="card-icon" style="background:#e6f1fb;">&#128197;</div>
+                        <h4>Timetable &amp; Exams</h4>
+                        <p>Build class timetables, schedule exams, and give teachers their own portal to mark attendance and enter grades.</p>
                     </div>
                 </div>
             </div>
@@ -1991,10 +2002,10 @@
                     <p>Sign up in minutes. Add your school name, term dates, and class structure once &mdash; you're ready to go.</p>
                 </div>
                 <div class="hiw-step">
-                    <div class="hiw-img"><img src="https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=400&h=280&fit=crop" alt="Import students data" /></div>
+                    <div class="hiw-img"><img src="https://images.unsplash.com/photo-1512314889357-e157c22f938d?w=400&h=280&fit=crop" alt="Add students data" /></div>
                     <div class="step-num">2</div>
-                    <h4>Import your students</h4>
-                    <p>Upload an Excel sheet or add students manually. The system organizes them into classes automatically.</p>
+                    <h4>Add your students</h4>
+                    <p>Enrol students with auto-generated admission numbers and EMIS / LIN details. The system organises them into classes and sections.</p>
                 </div>
                 <div class="hiw-step">
                     <div class="hiw-img"><img src="https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=400&h=280&fit=crop" alt="Manage school daily" /></div>
@@ -2012,47 +2023,44 @@
         </div>
     </section>
 
-    <!-- TESTIMONIALS -->
+    <!-- EARLY ADOPTERS -->
     <section class="testi-bg" id="testimonials">
         <div class="section-inner">
             <div class="c" style="margin-bottom:3rem;">
-                <div class="chip">Testimonials</div>
-                <div class="sec-h">What school leaders are saying</div>
-                <p class="sec-p">Used by headmasters, bursars, and directors across Uganda every single school day.</p>
+                <div class="chip">Be among the first</div>
+                <div class="sec-h">Built in Uganda, launching for Ugandan schools</div>
+                <p class="sec-p">uSchool is newly launched and onboarding its first schools. Join as a founding school and help shape a platform made for the way Ugandan schools really work.</p>
             </div>
             <div class="testi-grid">
                 <div class="testi-card">
                     <div class="testi-top">
-                        <img class="testi-avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=92&h=92&fit=crop&crop=face" alt="Margaret K" />
+                        <div class="fib-icon fi-g" style="font-size:1.4rem;">&#127979;</div>
                         <div>
-                            <div class="testi-name">Margaret Kyomugisha</div>
-                            <div class="testi-role">Headmistress<br>St. Jude's Primary, Mbarara</div>
+                            <div class="testi-name">Made for Uganda</div>
+                            <div class="testi-role">P1&ndash;S6 &middot; UNEB grading &middot; EMIS / LIN</div>
                         </div>
                     </div>
-                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                    <p class="testi-q">"Fee collection used to take our bursar three full days every term. With uSchool it's updated in real time and parents can pay via mobile money. It has completely transformed how we operate."</p>
+                    <p class="testi-q">Report cards, grading and student numbers follow Ugandan standards out of the box &mdash; no awkward workarounds.</p>
                 </div>
                 <div class="testi-card">
                     <div class="testi-top">
-                        <img class="testi-avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=92&h=92&fit=crop&crop=face" alt="James Okello" />
+                        <div class="fib-icon fi-b" style="font-size:1.4rem;">&#129309;</div>
                         <div>
-                            <div class="testi-name">James Okello</div>
-                            <div class="testi-role">Director<br>Hope Secondary School, Gulu</div>
+                            <div class="testi-name">Founding school benefits</div>
+                            <div class="testi-role">Early access &middot; direct support</div>
                         </div>
                     </div>
-                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                    <p class="testi-q">"The attendance SMS feature has dramatically improved punctuality in our school. Parents respond within minutes when they get a message that their child is absent. Every school should have this."</p>
+                    <p class="testi-q">Get hands-on onboarding from our Kampala team and a direct line to influence the features we build next.</p>
                 </div>
                 <div class="testi-card">
                     <div class="testi-top">
-                        <img class="testi-avatar" src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=92&h=92&fit=crop&crop=face" alt="Patricia Namukasa" />
+                        <div class="fib-icon fi-a" style="font-size:1.4rem;">&#128241;</div>
                         <div>
-                            <div class="testi-name">Patricia Namukasa</div>
-                            <div class="testi-role">Director of Studies<br>Kampala Junior Academy</div>
+                            <div class="testi-name">Works anywhere</div>
+                            <div class="testi-role">Phone, tablet or computer</div>
                         </div>
                     </div>
-                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-                    <p class="testi-q">"Generating end-of-term report cards used to take us two weeks. Now I do the entire school in one afternoon. Even teachers who aren't tech-savvy can navigate the gradebook without help."</p>
+                    <p class="testi-q">Installable as an app and usable on any device your staff already have &mdash; no special hardware required.</p>
                 </div>
             </div>
         </div>
@@ -2070,14 +2078,14 @@
                 <div class="price-card">
                     <div class="price-name">Starter</div>
                     <div class="price-desc">For small schools up to 200 students</div>
-                    <div class="price-amount">UGX 750,000 <small>/ year</small></div>
+                    <div class="price-amount">UGX 250,000 <small>/ term</small></div>
                     <hr class="divider" />
                     <ul class="price-feats">
                         <li><span class="chk"></span>Up to 200 students</li>
                         <li><span class="chk"></span>Student &amp; fee management</li>
                         <li><span class="chk"></span>Attendance tracking</li>
                         <li><span class="chk"></span>Basic report cards</li>
-                        <li><span class="chk"></span>50 SMS alerts / month</li>
+                        <li><span class="chk"></span>Email notifications to parents</li>
                         <li><span class="chk"></span>Email support</li>
                     </ul>
                     <a href="{{ route('register') }}" class="btn-p btn-outline">Get started free</a>
@@ -2086,14 +2094,14 @@
                     <div class="pop-badge">Most popular</div>
                     <div class="price-name">Growth</div>
                     <div class="price-desc">For growing schools up to 800 students</div>
-                    <div class="price-amount">UGX 1,300,000 <small>/ year</small></div>
+                    <div class="price-amount">UGX 460,000 <small>/ term</small></div>
                     <hr class="divider" />
                     <ul class="price-feats">
                         <li><span class="chk"></span>Up to 800 students</li>
                         <li><span class="chk"></span>All Starter features</li>
                         <li><span class="chk"></span>Parent communication portal</li>
                         <li><span class="chk"></span>Advanced gradebook</li>
-                        <li><span class="chk"></span>300 SMS alerts / month</li>
+                        <li><span class="chk"></span>Library, timetable &amp; exams</li>
                         <li><span class="chk"></span>WhatsApp &amp; phone support</li>
                     </ul>
                     <a href="{{ route('register') }}" class="btn-p btn-solid">Get started free</a>
@@ -2107,7 +2115,7 @@
                         <li><span class="chk"></span>Unlimited students</li>
                         <li><span class="chk"></span>Multi-campus dashboard</li>
                         <li><span class="chk"></span>Custom integrations</li>
-                        <li><span class="chk"></span>Unlimited SMS</li>
+                        <li><span class="chk"></span>Custom report card templates</li>
                         <li><span class="chk"></span>Dedicated account manager</li>
                         <li><span class="chk"></span>On-site training session</li>
                     </ul>
@@ -2125,7 +2133,7 @@
         <div class="cta-inner">
             <div class="cta-left">
                 <h2>Start managing your school the smart way</h2>
-                <p>Join over 120 schools already saving time, reducing paperwork, and keeping parents informed &mdash; all with uSchool.</p>
+                <p>Be among the first schools in Uganda to cut paperwork, organise records, and keep parents informed &mdash; all with uSchool.</p>
                 <ul class="cta-perks">
                     <li>Free 30-day trial &mdash; no credit card required</li>
                     <li>Setup assistance from our Kampala team</li>
@@ -2147,6 +2155,13 @@
                 @endif
                 <form method="POST" action="{{ route('demo.request') }}">
                     @csrf
+                    {{-- Anti-bot: honeypot field hidden from real users; bots tend to fill every field --}}
+                    <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+                        <label>Company website (leave blank)</label>
+                        <input type="text" name="company_website" tabindex="-1" autocomplete="off" />
+                    </div>
+                    {{-- Anti-bot: time trap; submissions faster than a few seconds are treated as bots --}}
+                    <input type="hidden" name="form_loaded_at" value="{{ time() }}" />
                     <div class="cf-field">
                         <label class="cf-label">School name</label>
                         <input class="cf-input" type="text" name="school_name" placeholder="e.g. St. Mary's College Kisubi" value="{{ old('school_name') }}" required />
@@ -2206,7 +2221,7 @@
                 <div class="footer-contact-items">
                     <div class="fc-item"><span class="fc-icon">&#128205;</span><span>Kampala, Uganda</span></div>
                     <div class="fc-item"><span class="fc-icon">&#128222;</span><span>+256 776 121 422</span></div>
-                    <div class="fc-item"><span class="fc-icon">&#9993;&#65039;</span><span>uschool@techmarketug.com</span></div>
+                    <div class="fc-item"><span class="fc-icon">&#9993;&#65039;</span><span>info@schoolsystem.techmarketug.com</span></div>
                     <div class="fc-item"><span class="fc-icon">&#128172;</span><span>WhatsApp Support<br>Mon&ndash;Fri, 8am&ndash;6pm</span></div>
                 </div>
             </div>
