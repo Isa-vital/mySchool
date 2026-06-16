@@ -34,23 +34,11 @@
     <!-- SweetAlert2 (for success / error notifications) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    {{-- CHANGED: restored Blade echo syntax; a formatter had mangled {{ }} into "{ { } }" with line breaks, which broke the CSS variables so the theme colour never applied --}}
     <style>
         :root {
-            --primary-color: {
-                    {
-                    setting('primary_color', '#1e40af')
-                }
-            }
-
-            ;
-
-            --secondary-color: {
-                    {
-                    setting('secondary_color', '#7c3aed')
-                }
-            }
-
-            ;
+            --primary-color: {{ setting('primary_color', '#1e40af') }};
+            --secondary-color: {{ setting('secondary_color', '#7c3aed') }};
         }
     </style>
 </head>

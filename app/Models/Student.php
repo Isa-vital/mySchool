@@ -44,18 +44,31 @@ class Student extends Model
      */
     public static function nextAdmissionNumber(): string
     {
-        $last = static::orderByDesc('id')->value('admission_number');
+        // CHANGED: honor the admission_number_prefix setting instead of always
+        // re-using the prefix of the last student (which kept it stuck on "ADM").
+        $prefix = trim((string) setting('admission_number_prefix', 'ADM'));
+        if ($prefix === '') {
+            $prefix = 'ADM';
+        }
 
-        $prefix = 'ADM';
         $padLength = 5;
         $number = 1;
 
-        if ($last && preg_match('/^([A-Za-z]*)(\d+)$/', $last, $m)) {
-            if ($m[1] !== '') {
-                $prefix = $m[1];
-            }
-            $padLength = strlen($m[2]);
-            $number = (int) $m[2] + 1;
+        // Continue the sequence from the most recent student using THIS prefix.
+        $last = static::where('admission_number', 'like', $prefix . '%')
+            ->orderByDesc('id')
+            ->value('admission_number');
+
+        // CHANGED: previous logic read the last student regardless of prefix:
+        // $last = static::orderByDesc('id')->value('admission_number');
+        // if ($last && preg_match('/^([A-Za-z]*)(\d+)$/', $last, $m)) {
+        //     if ($m[1] !== '') { $prefix = $m[1]; }
+        //     $padLength = strlen($m[2]);
+        //     $number = (int) $m[2] + 1;
+        // }
+        if ($last && preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $last, $m)) {
+            $padLength = strlen($m[1]);
+            $number = (int) $m[1] + 1;
         }
 
         // Guarantee uniqueness in case of gaps or concurrent inserts.
