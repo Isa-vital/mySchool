@@ -27,11 +27,29 @@ return [
 ];
 })->values();
 
-$rangesPayload = collect($gradingRanges ?? [])->map(fn ($r) => [
-'grade' => $r->grade,
-'min' => (float) $r->min_mark,
-'max' => (float) $r->max_mark,
-])->values();
+// CHANGED: accept both legacy object ranges (GradingScaleRange model instances)
+// and new normalized array ranges from AssessmentGradingService::previewRangesForExam().
+// CHANGED: old object-only mapping preserved for reference.
+// $rangesPayload = collect($gradingRanges ?? [])->map(fn ($r) => [
+//     'grade' => $r->grade,
+//     'min' => (float) $r->min_mark,
+//     'max' => (float) $r->max_mark,
+// ])->values();
+$rangesPayload = collect($gradingRanges ?? [])->map(function ($r) {
+    if (is_array($r)) {
+        return [
+            'grade' => (string) ($r['grade'] ?? '-'),
+            'min' => (float) ($r['min'] ?? $r['min_mark'] ?? 0),
+            'max' => (float) ($r['max'] ?? $r['max_mark'] ?? 100),
+        ];
+    }
+
+    return [
+        'grade' => (string) ($r->grade ?? '-'),
+        'min' => (float) ($r->min ?? $r->min_mark ?? 0),
+        'max' => (float) ($r->max ?? $r->max_mark ?? 100),
+    ];
+})->values();
 @endphp
 
 <form method="POST" action="{{ $action }}" x-ref="form"
