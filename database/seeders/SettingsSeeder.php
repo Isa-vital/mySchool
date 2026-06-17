@@ -31,6 +31,7 @@ class SettingsSeeder extends Seeder
             ['key' => 'login_background', 'value' => '', 'type' => 'image', 'group' => 'branding', 'label' => 'Login Background', 'description' => 'Background image for the login page', 'sort_order' => 6],
 
             // Academic
+            ['key' => 'school_level', 'value' => 'both', 'type' => 'select', 'group' => 'academic', 'label' => 'School Level', 'description' => 'Choose which class levels are active in this school.', 'options' => '{"primary":"Primary (P.1-P.7)","secondary":"Secondary (S.1-S.6)","both":"Both (P.1-P.7 and S.1-S.6)"}', 'sort_order' => 0],
             ['key' => 'grading_system', 'value' => 'percentage', 'type' => 'select', 'group' => 'academic', 'label' => 'Grading System', 'description' => 'Default grading system', 'options' => '["percentage","letter","gpa"]', 'sort_order' => 1],
             ['key' => 'attendance_type', 'value' => 'daily', 'type' => 'select', 'group' => 'academic', 'label' => 'Attendance Type', 'description' => 'How attendance is tracked', 'options' => '["daily","per_subject"]', 'sort_order' => 2],
             ['key' => 'academic_year_format', 'value' => 'calendar', 'type' => 'select', 'group' => 'academic', 'label' => 'Academic Year Format', 'description' => 'Calendar year (Jan-Dec) or custom', 'options' => '["calendar","custom"]', 'sort_order' => 3],

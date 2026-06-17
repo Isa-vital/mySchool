@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SchoolClass;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +47,9 @@ class SettingController extends Controller
             }
         }
 
+        $selectedSchoolLevel = (string) ($data['school_level'] ?? setting('school_level', 'both'));
+        $this->syncSchoolLevelClasses($selectedSchoolLevel);
+
         // Handle boolean checkboxes that weren't submitted (unchecked)
         $booleanSettings = Setting::where('type', 'boolean')->get();
         foreach ($booleanSettings as $bs) {
@@ -57,6 +61,70 @@ class SettingController extends Controller
         Setting::flushCache();
 
         return redirect()->route('settings.index')->with('success', 'Settings updated successfully.');
+    }
+
+    protected function syncSchoolLevelClasses(string $schoolLevel): void
+    {
+        $schoolLevel = in_array($schoolLevel, ['primary', 'secondary', 'both'], true) ? $schoolLevel : 'both';
+
+        $primary = [];
+        for ($level = 1; $level <= 7; $level++) {
+            $primary[] = [
+                'name' => 'P.' . $level,
+                'code' => 'P' . $level,
+                'level' => $level,
+                'category' => $level <= 4 ? 'lower_primary' : 'upper_primary',
+                'description' => 'Primary ' . $level,
+            ];
+        }
+
+        $secondary = [];
+        for ($level = 1; $level <= 6; $level++) {
+            $numericLevel = $level + 7;
+            $secondary[] = [
+                'name' => 'S.' . $level,
+                'code' => 'S' . $level,
+                'level' => $numericLevel,
+                'category' => $level <= 4 ? 'o_level' : 'a_level',
+                'description' => 'Secondary ' . $level,
+            ];
+        }
+
+        $standardClasses = [...$primary, ...$secondary];
+
+        foreach ($standardClasses as $classData) {
+            $isPrimary = str_starts_with($classData['code'], 'P');
+            $isSecondary = str_starts_with($classData['code'], 'S');
+
+            $shouldBeActive = match ($schoolLevel) {
+                'primary' => $isPrimary,
+                'secondary' => $isSecondary,
+                default => true,
+            };
+
+            $existingClass = SchoolClass::query()
+                ->where('code', $classData['code'])
+                ->orWhere(function ($query) use ($classData) {
+                    $query->where('name', $classData['name'])->where('level', $classData['level']);
+                })
+                ->first();
+
+            if ($existingClass) {
+                $existingClass->update([
+                    'name' => $classData['name'],
+                    'code' => $classData['code'],
+                    'level' => $classData['level'],
+                    'category' => $classData['category'],
+                    'description' => $classData['description'],
+                    'is_active' => $shouldBeActive,
+                ]);
+            } else {
+                SchoolClass::create([
+                    ...$classData,
+                    'is_active' => $shouldBeActive,
+                ]);
+            }
+        }
     }
 
     protected function validateJsonScaleSetting(string $key, mixed $value): void
