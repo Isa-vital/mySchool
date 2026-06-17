@@ -40,7 +40,88 @@ class SampleDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $faker = \Faker\Factory::create();
+        // CHANGED: production may run without fakerphp/faker installed.
+        // $faker = \Faker\Factory::create();
+        $faker = class_exists(\Faker\Factory::class)
+            ? \Faker\Factory::create()
+            : new class {
+                private bool $enforceUnique = false;
+                private ?float $optionalProbability = null;
+                private static array $uniqueValues = [];
+
+                public function unique(): self
+                {
+                    $clone = clone $this;
+                    $clone->enforceUnique = true;
+                    return $clone;
+                }
+
+                public function optional(float $probability = 0.5): self
+                {
+                    $clone = clone $this;
+                    $clone->optionalProbability = $probability;
+                    return $clone;
+                }
+
+                public function dateTimeBetween(string $start, string $end): \DateTime
+                {
+                    $min = strtotime($start) ?: (time() - 86400 * 365);
+                    $max = strtotime($end) ?: time();
+                    if ($max < $min) {
+                        $tmp = $min;
+                        $min = $max;
+                        $max = $tmp;
+                    }
+
+                    $timestamp = random_int($min, $max);
+                    return (new \DateTime())->setTimestamp($timestamp);
+                }
+
+                public function numerify(string $mask): ?string
+                {
+                    if ($this->shouldReturnNull()) {
+                        return null;
+                    }
+
+                    $value = preg_replace_callback('/#/', fn() => (string) random_int(0, 9), $mask);
+
+                    if (! $this->enforceUnique) {
+                        return $value;
+                    }
+
+                    $attempt = 0;
+                    while (isset(self::$uniqueValues[$value]) && $attempt < 50) {
+                        $value = preg_replace_callback('/#/', fn() => (string) random_int(0, 9), $mask);
+                        $attempt++;
+                    }
+
+                    self::$uniqueValues[$value] = true;
+                    return $value;
+                }
+
+                public function randomElement(array $items)
+                {
+                    if ($this->shouldReturnNull()) {
+                        return null;
+                    }
+
+                    return $items[array_rand($items)];
+                }
+
+                public function randomFloat(int $decimals, float $min, float $max): ?float
+                {
+                    if ($this->shouldReturnNull()) {
+                        return null;
+                    }
+
+                    return round($min + lcg_value() * ($max - $min), $decimals);
+                }
+
+                private function shouldReturnNull(): bool
+                {
+                    return $this->optionalProbability !== null && lcg_value() > $this->optionalProbability;
+                }
+            };
 
         $this->command->info('Seeding Ugandan sample data...');
 
