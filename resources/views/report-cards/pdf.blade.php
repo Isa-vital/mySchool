@@ -176,13 +176,32 @@
     </div>
 
     @if(($formatted['format'] ?? 'primary') === 'primary')
+    @php
+        // Dynamically collect exam names from report components (e.g., exams selected to appear on report)
+        $hasComponents = collect($formatted['subjects'] ?? [])->some(fn($s) => count($s['components'] ?? []) > 0);
+        $componentNames = [];
+        if ($hasComponents) {
+            foreach ($formatted['subjects'] ?? [] as $subject) {
+                foreach ($subject['components'] ?? [] as $comp) {
+                    if (!in_array($comp['exam_name'], $componentNames)) {
+                        $componentNames[] = $comp['exam_name'];
+                    }
+                }
+            }
+        }
+    @endphp
     <table class="grades">
         <thead>
             <tr>
                 <th style="width:6%;">#</th>
-                <th style="width:54%;">Subject</th>
-                <th style="width:20%;">Marks</th>
-                <th style="width:20%;">Achievement</th>
+                <th style="width:{{ $hasComponents ? 30 : 54 }}%;">Subject</th>
+                @if($hasComponents)
+                    @foreach($componentNames as $compName)
+                    <th style="width:{{ floor(40 / count($componentNames)) }}%;">{{ substr($compName, 0, 15) }}</th>
+                    @endforeach
+                @endif
+                <th style="width:20%;">Overall</th>
+                <th style="width:14%;">Grade</th>
             </tr>
         </thead>
         <tbody>
@@ -190,22 +209,46 @@
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $subject['subject'] }}</td>
-                <td>{{ $subject['marks'] }} / 100</td>
+                @if($hasComponents)
+                    @foreach($componentNames as $compName)
+                    @php
+                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    @endphp
+                    <td>{{ $comp ? round($comp['percentage']) . '%' : '-' }}</td>
+                    @endforeach
+                @endif
+                <td><strong>{{ round($subject['marks']) }}%</strong></td>
                 <td><strong>{{ $subject['grade'] }}</strong></td>
             </tr>
             @endforeach
         </tbody>
     </table>
     @elseif(($formatted['format'] ?? 'primary') === 'o-level')
+    @php
+        $hasOLevelComponents = collect($formatted['subjects'] ?? [])->some(fn($s) => count($s['components'] ?? []) > 0);
+        $oLevelCompNames = [];
+        if ($hasOLevelComponents) {
+            foreach ($formatted['subjects'] ?? [] as $subject) {
+                foreach ($subject['components'] ?? [] as $comp) {
+                    if (!in_array($comp['exam_name'], $oLevelCompNames)) {
+                        $oLevelCompNames[] = $comp['exam_name'];
+                    }
+                }
+            }
+        }
+    @endphp
     <table class="grades">
         <thead>
             <tr>
                 <th style="width:6%;">#</th>
-                <th style="width:59%;">Subject</th>
-                {{-- CHANGED: remove marks column for points-first O-level reporting. --}}
-                {{-- <th style="width:15%;">Marks</th> --}}
-                <th style="width:20%;">Grade</th>
-                <th style="width:15%;">Value</th>
+                <th style="width:{{ $hasOLevelComponents ? 25 : 59 }}%;">Subject</th>
+                @if($hasOLevelComponents)
+                    @foreach($oLevelCompNames as $compName)
+                    <th style="width:{{ floor(45 / count($oLevelCompNames)) }}%;">{{ substr($compName, 0, 15) }}</th>
+                    @endforeach
+                @endif
+                <th style="width:14%;">Grade</th>
+                <th style="width:12%;">Points</th>
             </tr>
         </thead>
         <tbody>
@@ -213,8 +256,16 @@
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $subject['subject'] }}</td>
+                @if($hasOLevelComponents)
+                    @foreach($oLevelCompNames as $compName)
+                    @php
+                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    @endphp
+                    <td>{{ $comp ? $comp['grade'] . ' (' . $comp['points'] . 'pt)' : '-' }}</td>
+                    @endforeach
+                @endif
                 <td><strong>{{ $subject['grade'] }}</strong></td>
-                <td>{{ $subject['points'] }}</td>
+                <td><strong>{{ $subject['points'] }}</strong></td>
             </tr>
             @endforeach
         </tbody>

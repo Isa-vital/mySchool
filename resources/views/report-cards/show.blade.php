@@ -47,7 +47,75 @@
         {{-- Grades Table --}}
         {{-- Grades Table - Format varies by assessment type --}}
         @if($formatted['format'] === 'primary')
-        {{-- PRIMARY FORMAT: Marks + Achievement Levels --}}
+        {{-- PRIMARY FORMAT: Marks + Achievement Levels with component breakdown --}}
+        @php
+            // Dynamically collect exam names from report components (exams ticked to appear on report)
+            $hasComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
+            $componentNames = [];
+            if ($hasComponents) {
+                foreach ($formatted['subjects'] as $subject) {
+                    foreach ($subject['components'] ?? [] as $comp) {
+                        if (!in_array($comp['exam_name'], $componentNames)) {
+                            $componentNames[] = $comp['exam_name'];
+                        }
+                    }
+                }
+            }
+        @endphp
+        @if($hasComponents)
+        {{-- Show component breakdown for composite reports (dynamically from selected exams) --}}
+        <table class="min-w-full divide-y divide-gray-200 mb-6">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                    @foreach($componentNames as $compName)
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">{{ $compName }}</th>
+                    @endforeach
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Overall</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($formatted['subjects'] as $i => $subject)
+                <tr>
+                    <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
+                    @foreach($componentNames as $compName)
+                    @php
+                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    @endphp
+                    <td class="px-4 py-2 text-sm text-center">
+                        @if($comp)
+                        <div class="text-gray-900 font-medium">{{ round($comp['percentage']) }}%</div>
+                        <div class="text-xs text-gray-500">{{ $comp['marks'] }}/{{ $comp['full_marks'] }}</div>
+                        @else
+                        <span class="text-gray-400">-</span>
+                        @endif
+                    </td>
+                    @endforeach
+                    <td class="px-4 py-2 text-sm text-center">
+                        <div class="text-gray-900 font-medium">{{ round($subject['marks']) }}%</div>
+                        <span class="px-2 py-1 rounded text-xs font-semibold {{ $subject['color'] }}">
+                            {{ $subject['grade'] }}
+                        </span>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot class="bg-gray-50">
+                <tr>
+                    <td colspan="{{ 2 + count($componentNames) }}" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Performance</td>
+                    <td class="px-4 py-2 text-sm text-center">
+                        <div class="text-gray-900 font-bold">{{ $formatted['average'] }}%</div>
+                        <span class="px-2 py-1 rounded text-xs font-semibold {{ $formatted['overall_grade'] === 'Excellent' || $formatted['overall_grade'] === 'Very Good' ? 'bg-green-100 text-green-800' : ($formatted['overall_grade'] === 'Good' ? 'bg-blue-100 text-blue-800' : ($formatted['overall_grade'] === 'Satisfactory' ? 'bg-yellow-100 text-yellow-800' : ($formatted['overall_grade'] === 'Fair' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'))) }}">
+                            {{ $formatted['overall_grade'] }}
+                        </span>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        @else
+        {{-- Simple format without components --}}
         <table class="min-w-full divide-y divide-gray-200 mb-6">
             <thead class="bg-gray-50">
                 <tr>
@@ -83,18 +151,84 @@
                 </tr>
             </tfoot>
         </table>
+        @endif
 
         @elseif($formatted['format'] === 'o-level')
-        {{-- CHANGED: O-LEVEL FORMAT (new curriculum): competency level + points --}}
+        {{-- O-LEVEL FORMAT: Competency-based with descriptors --}}
+        @php
+            $hasOLevelComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
+            $oLevelCompNames = [];
+            if ($hasOLevelComponents) {
+                foreach ($formatted['subjects'] as $subject) {
+                    foreach ($subject['components'] ?? [] as $comp) {
+                        if (!in_array($comp['exam_name'], $oLevelCompNames)) {
+                            $oLevelCompNames[] = $comp['exam_name'];
+                        }
+                    }
+                }
+            }
+        @endphp
+        @if($hasOLevelComponents)
+        {{-- Show O-Level component breakdown (multi-term competencies) --}}
         <table class="min-w-full divide-y divide-gray-200 mb-6">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    {{-- CHANGED: old marks column intentionally removed for points-first reporting. --}}
-                    {{-- <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marks</th> --}}
+                    @foreach($oLevelCompNames as $compName)
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">{{ $compName }}</th>
+                    @endforeach
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Overall</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-xs">
+                @foreach($formatted['subjects'] as $i => $subject)
+                <tr>
+                    <td class="px-4 py-2 text-gray-500">{{ $i + 1 }}</td>
+                    <td class="px-4 py-2 text-gray-900 font-medium">{{ $subject['subject'] }}</td>
+                    @foreach($oLevelCompNames as $compName)
+                    @php
+                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    @endphp
+                    <td class="px-4 py-2 text-center">
+                        @if($comp)
+                        <div class="font-semibold">{{ $comp['grade'] }}</div>
+                        <div class="text-gray-600">{{ $comp['points'] }} pts</div>
+                        <div class="text-gray-500 italic">{{ $comp['descriptor'] }}</div>
+                        @else
+                        <span class="text-gray-400">-</span>
+                        @endif
+                    </td>
+                    @endforeach
+                    <td class="px-4 py-2 text-center">
+                        <div class="font-bold {{ $subject['color'] }}">{{ $subject['grade'] }}</div>
+                        <div class="text-gray-600">{{ $subject['points'] }} pts</div>
+                        <div class="text-gray-600 italic">{{ $subject['descriptor'] }}</div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot class="bg-gray-50">
+                <tr>
+                    <td colspan="{{ 2 + count($oLevelCompNames) }}" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Achievement</td>
+                    <td class="px-4 py-2 text-sm text-center">
+                        <div class="font-bold">{{ $formatted['overall_grade'] }}</div>
+                        <div class="text-gray-700 font-medium">{{ $formatted['total_points'] }} pts</div>
+                        <div class="text-gray-600 italic">{{ $formatted['overall_descriptor'] ?? $formatted['overall_grade'] }}</div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        @else
+        {{-- Simple O-Level format without components --}}
+        <table class="min-w-full divide-y divide-gray-200 mb-6">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Descriptor</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -108,6 +242,7 @@
                         </span>
                     </td>
                     <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['points'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-700">{{ $subject['descriptor'] }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -115,14 +250,16 @@
                 <tr>
                     <td colspan="2" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Competency</td>
                     <td class="px-4 py-2 text-sm text-center font-bold">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold {{ 'bg-blue-100 text-blue-800' }}">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                             {{ $formatted['overall_grade'] }}
                         </span>
                     </td>
                     <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['total_points'] }} pts</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-700">{{ $formatted['overall_descriptor'] ?? $formatted['overall_grade'] }}</td>
                 </tr>
             </tfoot>
         </table>
+        @endif
 
         @elseif($formatted['format'] === 'a-level')
         {{-- A-LEVEL FORMAT: Grade Points with School Total out of configured max --}}

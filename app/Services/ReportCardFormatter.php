@@ -28,7 +28,8 @@ class ReportCardFormatter
 
     /**
      * PRIMARY FORMAT: Traditional marks + achievement levels
-     * Each subject shows: Marks (0-100) → Achievement Level (Excellent/Good/Satisfactory/Fair/Poor)
+     * Shows term breakdown (BOT/MID/END) when multiple component exams exist.
+     * Each subject shows: Marks (0-100) per term → Achievement Level
      */
     private static function formatPrimary(
         Collection $grades,
@@ -44,11 +45,27 @@ class ReportCardFormatter
             $marks = $grade->marks_obtained ?? 0;
             $resolved = AssessmentGradingService::resolve($marks, $ranges);
 
+            // Include component breakdown for term-by-term display
+            $components = [];
+            if (is_object($grade) && isset($grade->components) && is_array($grade->components)) {
+                $components = collect($grade->components)
+                    ->map(fn($comp) => [
+                        'exam_name' => $comp['exam_name'] ?? $comp['name'] ?? '',
+                        'marks' => (float) $comp['marks'],
+                        'full_marks' => (float) $comp['full_marks'],
+                        'percentage' => (float) ($comp['marks'] / $comp['full_marks']) * 100,
+                    ])
+                    ->sortBy('exam_name')
+                    ->values()
+                    ->all();
+            }
+
             return [
                 'subject' => $grade->subject->name,
                 'marks' => $marks,
                 'grade' => $resolved['grade'],
                 'color' => self::getAchievementLevelColor($resolved['grade']),
+                'components' => $components,
             ];
         });
 
@@ -72,8 +89,9 @@ class ReportCardFormatter
     }
 
     /**
-     * O-LEVEL FORMAT (new curriculum): Competency level + points.
-     * Each subject shows: Level (A-E) + Points (1-5, lower is better)
+     * O-LEVEL FORMAT (new curriculum): Competency-based scoring.
+     * Shows grade (A-E) + points (1-5, lower is better) + descriptors.
+     * For composite reports: aggregates competency scores across component exams.
      */
     private static function formatOLevel(
         Collection $grades,
@@ -89,6 +107,27 @@ class ReportCardFormatter
             $marks = $grade->marks_obtained ?? 0;
             $subjectResult = AssessmentGradingService::resolve($marks, $ranges);
 
+            // Include component breakdown for multi-term display
+            $components = [];
+            if (is_object($grade) && isset($grade->components) && is_array($grade->components)) {
+                $components = collect($grade->components)
+                    ->map(function ($comp) use ($ranges) {
+                        $compResult = AssessmentGradingService::resolve((float) $comp['marks'], $ranges);
+                        return [
+                            'exam_name' => $comp['exam_name'] ?? $comp['name'] ?? '',
+                            'marks' => (float) $comp['marks'],
+                            'full_marks' => (float) $comp['full_marks'],
+                            'percentage' => round((float) ($comp['marks'] / $comp['full_marks']) * 100, 1),
+                            'grade' => $compResult['grade'],
+                            'points' => $compResult['points'],
+                            'descriptor' => $compResult['description'],
+                        ];
+                    })
+                    ->sortBy('exam_name')
+                    ->values()
+                    ->all();
+            }
+
             return [
                 'subject' => $grade->subject->name,
                 'raw_marks' => $marks,
@@ -96,6 +135,7 @@ class ReportCardFormatter
                 'points' => $subjectResult['points'],
                 'descriptor' => $subjectResult['description'],
                 'color' => self::getOLevelGradeColor($subjectResult['grade']),
+                'components' => $components,
             ];
         });
 
@@ -103,18 +143,19 @@ class ReportCardFormatter
         $subjectCount = $gradedSubjects->count();
         $averagePoints = $subjectCount > 0 ? round($totalPoints / $subjectCount, 2) : 0;
         $overallGrade = AssessmentGradingService::resolve($average, $ranges)['grade'];
+        $overallDescriptor = AssessmentGradingService::resolve($average, $ranges)['description'];
 
         return [
             'format' => 'o-level',
             'format_label' => 'O-Level School Report (Competency-Based)',
             'subjects' => $gradedSubjects,
-            // CHANGED: keep legacy values for compatibility, but UI should prefer points fields.
             'total_marks' => $totalMarks,
             'average' => round($average, 2),
             'total_points' => $totalPoints,
             'average_points' => $averagePoints,
             'subject_count' => $subjectCount,
             'overall_grade' => $overallGrade,
+            'overall_descriptor' => $overallDescriptor,
             'position' => $position,
             'class_size' => $classSize,
             'remarks' => [
