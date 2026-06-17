@@ -169,6 +169,7 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::get('exams/{exam}/edit', [ExamController::class, 'edit'])->name('exams.edit')->middleware('permission:exams.edit');
     Route::put('exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware('permission:exams.edit');
     Route::patch('exams/{exam}', [ExamController::class, 'update'])->middleware('permission:exams.edit');
+    Route::post('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish')->middleware('permission:exams.edit');
     Route::delete('exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware('permission:exams.delete');
     Route::post('exams/{exam}/schedules', [ExamController::class, 'addSchedule'])->name('exams.schedules.store')->middleware('permission:exams.edit');
     Route::delete('exam-schedules/{schedule}', [ExamController::class, 'removeSchedule'])->name('exam-schedules.destroy')->middleware('permission:exams.edit');

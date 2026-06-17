@@ -175,39 +175,90 @@
         </div>
     </div>
 
+    @if(($formatted['format'] ?? 'primary') === 'primary')
     <table class="grades">
         <thead>
             <tr>
-                <th style="width:5%;">#</th>
-                <th style="width:45%;">Subject</th>
-                <th style="width:15%;">Score</th>
-                <th style="width:15%;">Grade</th>
-                <th style="width:20%;">Remark</th>
+                <th style="width:6%;">#</th>
+                <th style="width:54%;">Subject</th>
+                <th style="width:20%;">Marks</th>
+                <th style="width:20%;">Achievement</th>
             </tr>
         </thead>
         <tbody>
-            @php $totalScore = 0; $count = 0; @endphp
-            @foreach($grades as $i => $grade)
-            @php $totalScore += $grade->marks_obtained ?? 0; $count++; @endphp
+            @foreach(($formatted['subjects'] ?? []) as $i => $subject)
             <tr>
                 <td>{{ $i + 1 }}</td>
-                <td>{{ $grade->subject->name ?? '-' }}</td>
-                <td>{{ $grade->marks_obtained ?? '-' }} / 100</td>
-                <td><strong>{{ $grade->grade_letter ?? '-' }}</strong>@if($grade->achievement_level) ({{ $grade->achievement_level }})@endif</td>
-                <td>{{ $grade->remarks ?? '-' }}</td>
+                <td>{{ $subject['subject'] }}</td>
+                <td>{{ $subject['marks'] }} / 100</td>
+                <td><strong>{{ $subject['grade'] }}</strong></td>
             </tr>
             @endforeach
         </tbody>
     </table>
+    @elseif(($formatted['format'] ?? 'primary') === 'o-level')
+    <table class="grades">
+        <thead>
+            <tr>
+                <th style="width:6%;">#</th>
+                <th style="width:49%;">Subject</th>
+                <th style="width:15%;">Marks</th>
+                <th style="width:15%;">Grade</th>
+                <th style="width:15%;">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(($formatted['subjects'] ?? []) as $i => $subject)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $subject['subject'] }}</td>
+                <td>{{ $subject['marks'] }} / 100</td>
+                <td><strong>{{ $subject['grade'] }}</strong></td>
+                <td>{{ $subject['points'] }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @else
+    <table class="grades">
+        <thead>
+            <tr>
+                <th style="width:6%;">#</th>
+                <th style="width:54%;">Subject</th>
+                <th style="width:20%;">Marks</th>
+                <th style="width:10%;">Grade</th>
+                <th style="width:10%;">Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(($formatted['subjects'] ?? []) as $i => $subject)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $subject['subject'] }}</td>
+                <td>{{ $subject['marks'] }}</td>
+                <td><strong>{{ $subject['grade'] }}</strong></td>
+                <td>{{ $subject['points'] }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
 
     <div class="summary">
-        <p><strong>Total Score:</strong> {{ $totalMarks }} / {{ $count * 100 }}</p>
-        <p><strong>Average:</strong> {{ $average }}%</p>
-        <p><strong>Subjects Taken:</strong> {{ $count }}</p>
-        <p><strong>Position in Class:</strong> {{ $position ? $position . ' out of ' . $classSize : '-' }}</p>
-        @if($nationalExam)
-        <p><strong>{{ $nationalExam }} Result:</strong> {{ $result ?? 'N/A' }}@if($aggregate !== null) (Aggregate {{ $aggregate }})@endif</p>
+        @if(($formatted['format'] ?? 'primary') === 'primary')
+        <p><strong>Average:</strong> {{ $formatted['average'] }}%</p>
+        <p><strong>Overall Performance:</strong> {{ $formatted['overall_grade'] }}</p>
+        <p><strong>Subjects Taken:</strong> {{ count($formatted['subjects'] ?? []) }}</p>
+        @elseif(($formatted['format'] ?? 'primary') === 'o-level')
+        <p><strong>Average:</strong> {{ $formatted['average'] }}%</p>
+        <p><strong>Best-8 Aggregate:</strong> {{ $formatted['aggregate_points'] }}</p>
+        <p><strong>Division:</strong> {{ $formatted['overall_grade'] }}</p>
+        @else
+        <p><strong>Total Points:</strong> {{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}</p>
+        <p><strong>Raw Subject Points:</strong> {{ $formatted['raw_points'] }}</p>
+        <p><strong>Average Subject Points:</strong> {{ $formatted['average_points'] }}</p>
         @endif
+        <p><strong>Position in Class:</strong> {{ $position ? $position . ' out of ' . $classSize : '-' }}</p>
         <p><strong>Conduct:</strong> {{ $reportCard->conduct ?? '-' }}</p>
     </div>
 

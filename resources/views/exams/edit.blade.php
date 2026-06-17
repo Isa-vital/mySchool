@@ -18,7 +18,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Academic Year <span class="text-red-500">*</span></label>
                     <select name="academic_year_id" id="academic_year_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         @foreach($academicYears as $year)
-                            <option value="{{ $year->id }}" {{ old('academic_year_id', $exam->academic_year_id) == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
+                        <option value="{{ $year->id }}" {{ old('academic_year_id', $exam->academic_year_id) == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -35,6 +35,18 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                     <input type="date" name="end_date" value="{{ old('end_date', $exam->end_date?->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Report Card Format <span class="text-red-500">*</span></label>
+                    <select name="assessment_format" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" required>
+                        <option value="primary" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'primary' ? 'selected' : '' }}>Primary</option>
+                        <option value="o-level" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'o-level' ? 'selected' : '' }}>O-Level</option>
+                        <option value="a-level" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'a-level' ? 'selected' : '' }}>A-Level</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Max Marks / Points</label>
+                    <input type="number" name="max_points" min="1" max="500" value="{{ old('max_points', $exam->max_points ?? 100) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
                 <div class="flex items-center pt-6">
                     <label class="flex items-center space-x-2 cursor-pointer">
@@ -58,7 +70,7 @@
 
     {{-- JS: Filter terms by selected academic year --}}
     <script>
-        const termsByYear = @json($academicYears->mapWithKeys(fn($y) => [$y->id => $y->terms]));
+        const termsByYear = @json($academicYears - > mapWithKeys(fn($y) => [$y - > id => $y - > terms]));
         const yearSelect = document.getElementById('academic_year_id');
         const termSelect = document.getElementById('term_id');
         const currentTermId = '{{ old("term_id", $exam->term_id) }}';

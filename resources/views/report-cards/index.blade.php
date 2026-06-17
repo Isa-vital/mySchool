@@ -10,7 +10,7 @@
                 <select name="class_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                     <option value="">Select Class</option>
                     @foreach($classes as $class)
-                        <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
+                    <option value="{{ $class->id }}" {{ request('class_id') == $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -19,7 +19,12 @@
                 <select name="exam_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                     <option value="">Select Exam</option>
                     @foreach($exams as $exam)
-                        <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>{{ $exam->name }}</option>
+                    <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>
+                        {{ $exam->name }}
+                        @if(!$exam->is_published)
+                        (Draft)
+                        @endif
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -28,32 +33,32 @@
     </div>
 
     @if(isset($students) && $students->count())
-        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admission No</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($students as $i => $student)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-3 text-sm text-gray-500">{{ $i + 1 }}</td>
-                            <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $student->full_name }}</td>
-                            <td class="px-6 py-3 text-sm text-gray-600">{{ $student->admission_number }}</td>
-                            <td class="px-6 py-3 text-right text-sm">
-                                <a href="{{ route('report-cards.show', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-blue-600 hover:text-blue-800 mr-3">View</a>
-                                <a href="{{ route('report-cards.pdf', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-green-600 hover:text-green-800">PDF</a>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Admission No</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($students as $i => $student)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-3 text-sm text-gray-500">{{ $i + 1 }}</td>
+                    <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $student->full_name }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600">{{ $student->admission_number }}</td>
+                    <td class="px-6 py-3 text-right text-sm">
+                        <a href="{{ route('report-cards.show', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-blue-600 hover:text-blue-800 mr-3">View</a>
+                        <a href="{{ route('report-cards.pdf', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-green-600 hover:text-green-800">PDF</a>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
     @else
-        <div class="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">Select a class and exam to view report cards.</div>
+    <div class="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">Select a class and exam to view report cards.</div>
     @endif
 </x-app-layout>

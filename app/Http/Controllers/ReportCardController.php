@@ -8,6 +8,7 @@ use App\Models\Grade;
 use App\Models\ReportCard;
 use App\Models\SchoolClass;
 use App\Services\UgandaGrading;
+use App\Services\ReportCardFormatter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,15 @@ class ReportCardController extends Controller
 {
     public function index(Request $request)
     {
-        $exams = Exam::where('is_published', true)->with(['academicYear', 'term'])->orderBy('created_at', 'desc')->get();
+        // CHANGED: admins can see all exams (published + unpublished) so they can enter
+        // report cards before publishing. Other users only see published exams.
+        $examsQuery = Exam::with(['academicYear', 'term'])->orderBy('created_at', 'desc');
+        
+        if (!auth()->user()?->hasRole('Super Admin') && !auth()->user()?->hasPermissionTo('report_cards.edit')) {
+            $examsQuery->where('is_published', true);
+        }
+        
+        $exams = $examsQuery->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
 
         $students = collect();
@@ -83,6 +92,16 @@ class ReportCardController extends Controller
         $figures = $this->computeFigures($student, $exam);
         $reportCard = ReportCard::firstOrNew(['student_id' => $student->id, 'exam_id' => $exam->id]);
 
+        // Format report card based on assessment format
+        $formatted = ReportCardFormatter::format(
+            $exam,
+            $grades,
+            $figures['total_marks'],
+            $figures['average'],
+            $figures['position'],
+            $figures['class_size']
+        );
+
         return [
             'student' => $student,
             'exam' => $exam,
@@ -97,6 +116,7 @@ class ReportCardController extends Controller
             'nationalExam' => $schoolClass?->nationalExam(),
             'result' => $figures['result'],
             'aggregate' => $figures['aggregate'],
+            'formatted' => $formatted, // New formatted data
         ];
     }
 

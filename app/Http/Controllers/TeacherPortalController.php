@@ -182,6 +182,14 @@ class TeacherPortalController extends Controller
         $subjects = collect();
         $subject = null;
 
+        // CHANGED: provide grading ranges + marks for live grade preview/validation.
+        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
+        $gradingRanges = $gradingScale
+            ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get()
+            : collect();
+        $fullMarks = 100;
+        $passMarks = 40;
+
         if ($selectedClassId) {
             $class = SchoolClass::find($selectedClassId);
             $subjects = $class ? $class->subjects : collect();
@@ -200,10 +208,19 @@ class TeacherPortalController extends Controller
                     ->where('subject_id', $selectedSubjectId)
                     ->get()
                     ->keyBy('student_id');
+
+                $schedule = \App\Models\ExamSchedule::where('exam_id', $exam->id)
+                    ->where('school_class_id', $selectedClassId)
+                    ->where('subject_id', $selectedSubjectId)
+                    ->first();
+                if ($schedule) {
+                    $fullMarks = (float) $schedule->full_marks ?: 100;
+                    $passMarks = (float) $schedule->pass_marks ?: 40;
+                }
             }
         }
 
-        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId'));
+        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks'));
     }
 
     public function saveGrades(Request $request, Exam $exam)

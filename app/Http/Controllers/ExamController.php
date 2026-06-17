@@ -34,6 +34,9 @@ class ExamController extends Controller
     {
         $validated = $request->validated();
 
+        $validated['assessment_format'] = $validated['assessment_format'] ?? setting('report_card_format', 'primary');
+        $validated['max_points'] = $validated['max_points'] ?? 100;
+
         $exam = Exam::create($validated);
 
         // Auto-create exam schedules for selected classes and their subjects
@@ -75,6 +78,9 @@ class ExamController extends Controller
     {
         $validated = $request->validated();
 
+        $validated['assessment_format'] = $validated['assessment_format'] ?? $exam->assessment_format ?? setting('report_card_format', 'primary');
+        $validated['max_points'] = $validated['max_points'] ?? $exam->max_points ?? 100;
+
         // Handle unchecked checkbox
         $validated['is_published'] = $request->has('is_published');
 
@@ -94,6 +100,36 @@ class ExamController extends Controller
         }
 
         return redirect()->route('exams.index')->with('success', 'Exam updated successfully.');
+    }
+
+    public function publish(Exam $exam)
+    {
+        // If already published, return early
+        if ($exam->is_published) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Exam is already published'
+            ], 400);
+        }
+
+        // Mark exam as published
+        $exam->update(['is_published' => true]);
+
+        // Notify guardians via queued mail
+        $studentIds = $exam->grades()->distinct()->pluck('student_id');
+        $students = \App\Models\Student::with('guardians')->whereIn('id', $studentIds)->get();
+        foreach ($students as $student) {
+            $guardian = $student->primaryGuardian();
+            $email = $guardian?->email ?? $student->email;
+            if ($email) {
+                Mail::to($email)->queue(new ExamResultsPublishedMail($student, $exam));
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Exam published and guardians notified'
+        ]);
     }
 
     public function destroy(Exam $exam)

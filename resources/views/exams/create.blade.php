@@ -20,7 +20,7 @@
                     <select name="academic_year_id" id="academic_year_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         <option value="">Select</option>
                         @foreach($academicYears as $year)
-                            <option value="{{ $year->id }}" {{ old('academic_year_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
+                        <option value="{{ $year->id }}" {{ old('academic_year_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -38,6 +38,18 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                     <input type="date" name="end_date" value="{{ old('end_date') }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Report Card Format <span class="text-red-500">*</span></label>
+                    <select name="assessment_format" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" required>
+                        <option value="primary" {{ old('assessment_format', setting('report_card_format', 'primary')) === 'primary' ? 'selected' : '' }}>Primary</option>
+                        <option value="o-level" {{ old('assessment_format', setting('report_card_format', 'primary')) === 'o-level' ? 'selected' : '' }}>O-Level</option>
+                        <option value="a-level" {{ old('assessment_format', setting('report_card_format', 'primary')) === 'a-level' ? 'selected' : '' }}>A-Level</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Max Marks / Points</label>
+                    <input type="number" name="max_points" min="1" max="500" value="{{ old('max_points', 100) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                </div>
                 <div class="md:col-span-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">{{ old('description') }}</textarea>
@@ -51,10 +63,10 @@
             <p class="text-xs text-gray-500 mb-4">Exam schedules will be auto-created for every subject assigned to each selected class.</p>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                 @foreach($classes as $class)
-                    <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <input type="checkbox" name="class_ids[]" value="{{ $class->id }}" {{ in_array($class->id, old('class_ids', [])) ? 'checked' : '' }} class="rounded text-blue-600">
-                        <span class="text-sm text-gray-700">{{ $class->name }}</span>
-                    </label>
+                <label class="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" name="class_ids[]" value="{{ $class->id }}" {{ in_array($class->id, old('class_ids', [])) ? 'checked' : '' }} class="rounded text-blue-600">
+                    <span class="text-sm text-gray-700">{{ $class->name }}</span>
+                </label>
                 @endforeach
             </div>
         </div>
@@ -67,7 +79,7 @@
 
     {{-- JS: Filter terms by selected academic year --}}
     <script>
-        const termsByYear = @json($academicYears->mapWithKeys(fn($y) => [$y->id => $y->terms]));
+        const termsByYear = @json($academicYears - > mapWithKeys(fn($y) => [$y - > id => $y - > terms]));
         const yearSelect = document.getElementById('academic_year_id');
         const termSelect = document.getElementById('term_id');
         const oldTermId = '{{ old("term_id") }}';

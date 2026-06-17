@@ -1,36 +1,37 @@
 @props([
-    'action',
-    'students',
-    'existingGrades',
-    'subject',
-    'classId',
-    'className' => '',
-    'examName' => '',
-    'gradingRanges' => null,
-    'fullMarks' => 100,
-    'passMarks' => 40,
+'action',
+'students',
+'existingGrades',
+'subject',
+'classId',
+'className' => '',
+'examName' => '',
+'gradingRanges' => null,
+'fullMarks' => 100,
+'passMarks' => 40,
+'exam' => null,
 ])
 
 @php
-    // Normalise existing grades access (collection keyed by student_id).
-    $rows = $students->values()->map(function ($s) use ($existingGrades) {
-        $g = $existingGrades instanceof \Illuminate\Support\Collection
-            ? $existingGrades->get($s->id)
-            : ($existingGrades[$s->id] ?? null);
-        return [
-            'student_id' => $s->id,
-            'name' => $s->full_name,
-            'adm' => $s->admission_number,
-            'marks' => ($g && $g->marks_obtained !== null) ? (string) (float) $g->marks_obtained : '',
-            'remarks' => $g->remarks ?? '',
-        ];
-    })->values();
+// Normalise existing grades access (collection keyed by student_id).
+$rows = $students->values()->map(function ($s) use ($existingGrades) {
+$g = $existingGrades instanceof \Illuminate\Support\Collection
+? $existingGrades->get($s->id)
+: ($existingGrades[$s->id] ?? null);
+return [
+'student_id' => $s->id,
+'name' => $s->full_name,
+'adm' => $s->admission_number,
+'marks' => ($g && $g->marks_obtained !== null) ? (string) (float) $g->marks_obtained : '',
+'remarks' => $g->remarks ?? '',
+];
+})->values();
 
-    $rangesPayload = collect($gradingRanges ?? [])->map(fn ($r) => [
-        'grade' => $r->grade,
-        'min' => (float) $r->min_mark,
-        'max' => (float) $r->max_mark,
-    ])->values();
+$rangesPayload = collect($gradingRanges ?? [])->map(fn ($r) => [
+'grade' => $r->grade,
+'min' => (float) $r->min_mark,
+'max' => (float) $r->max_mark,
+])->values();
 @endphp
 
 <form method="POST" action="{{ $action }}" x-ref="form"
@@ -41,7 +42,8 @@
         passMarks: {{ (float) $passMarks }},
         subjectName: {{ Illuminate\Support\Js::from($subject->name ?? '') }}
     })"
-    @submit.prevent="save()">
+    @submit.prevent="save()"
+    @if($exam) data-exam-id="{{ $exam->id }}" @endif>
     @csrf
     <input type="hidden" name="class_id" value="{{ $classId }}">
     <input type="hidden" name="subject_id" value="{{ $subject->id ?? '' }}">
@@ -127,112 +129,171 @@
         <div class="sticky bottom-0 z-20 px-4 sm:px-6 py-3 border-t bg-gray-50 flex items-center justify-between gap-3">
             <p class="text-sm" :class="invalidCount > 0 ? 'text-red-600 font-medium' : 'text-gray-500'"
                 x-text="invalidCount > 0 ? `${invalidCount} mark(s) out of range` : `${gradedCount} of ${rows.length} students ready to save`"></p>
-            <button type="submit"
-                class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm disabled:opacity-50"
-                :disabled="invalidCount > 0"
-                style="background: var(--primary-color);">
-                Save Grades
-            </button>
+            <div class="flex items-center gap-3">
+                @if($exam && !$exam->is_published)
+                <button type="button" @click="publishExam()"
+                    class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm hover:opacity-90"
+                    style="background: #16a34a;">
+                    Publish Exam
+                </button>
+                @endif
+                <button type="submit"
+                    class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm disabled:opacity-50"
+                    :disabled="invalidCount > 0"
+                    style="background: var(--primary-color);">
+                    Save Grades
+                </button>
+            </div>
         </div>
     </div>
 </form>
 
 @once
-    @push('scripts')
-    <script>
-        function gradeEntry(config) {
-            return {
-                rows: config.rows,
-                ranges: config.ranges,
-                fullMarks: config.fullMarks,
-                passMarks: config.passMarks,
-                subjectName: config.subjectName,
-                dirty: false,
+@push('scripts')
+<script>
+    function gradeEntry(config) {
+        return {
+            rows: config.rows,
+            ranges: config.ranges,
+            fullMarks: config.fullMarks,
+            passMarks: config.passMarks,
+            subjectName: config.subjectName,
+            dirty: false,
 
-                init() {
-                    this._guard = (e) => { if (this.dirty) { e.preventDefault(); e.returnValue = ''; } };
-                    window.addEventListener('beforeunload', this._guard);
-                },
-
-                hasValue(m) {
-                    return m !== '' && m !== null && m !== undefined && !isNaN(parseFloat(m));
-                },
-                get gradedCount() {
-                    return this.rows.filter(r => this.hasValue(r.marks)).length;
-                },
-                get invalidCount() {
-                    return this.rows.filter(r => this.isInvalid(r.marks)).length;
-                },
-                get progress() {
-                    return this.rows.length ? Math.round((this.gradedCount / this.rows.length) * 100) : 0;
-                },
-                isInvalid(m) {
-                    if (!this.hasValue(m)) return false;
-                    const v = parseFloat(m);
-                    return v < 0 || v > this.fullMarks;
-                },
-                gradeFor(m) {
-                    if (!this.hasValue(m)) return '\u2014';
-                    if (this.isInvalid(m)) return '!';
-                    const v = parseFloat(m);
-                    const r = this.ranges.find(x => v >= x.min && v <= x.max);
-                    return r ? r.grade : '?';
-                },
-                gradeChipClass(m) {
-                    if (!this.hasValue(m)) return 'bg-gray-100 text-gray-300';
-                    if (this.isInvalid(m)) return 'bg-red-100 text-red-700';
-                    return parseFloat(m) >= this.passMarks
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-amber-100 text-amber-700';
-                },
-                moveFocus(e, dir) {
-                    const inputs = Array.from(this.$root.querySelectorAll('input.js-mark'));
-                    const idx = inputs.indexOf(e.target);
-                    const next = inputs[idx + dir];
-                    if (next) { next.focus(); next.select(); }
-                },
-                clearAll() {
-                    Swal.fire({
-                        title: 'Clear all marks?',
-                        text: 'This only clears the form. Nothing is deleted until you save.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Clear',
-                    }).then(res => {
-                        if (res.isConfirmed) {
-                            this.rows.forEach(r => { r.marks = ''; r.remarks = ''; });
-                            this.dirty = true;
-                        }
-                    });
-                },
-                save() {
-                    if (this.invalidCount > 0) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Fix invalid marks',
-                            text: `${this.invalidCount} mark(s) are outside 0\u2013${this.fullMarks}.`,
-                        });
-                        return;
+            init() {
+                this._guard = (e) => {
+                    if (this.dirty) {
+                        e.preventDefault();
+                        e.returnValue = '';
                     }
-                    const primary = getComputedStyle(document.documentElement)
-                        .getPropertyValue('--primary-color').trim() || '#1e40af';
+                };
+                window.addEventListener('beforeunload', this._guard);
+            },
+
+            hasValue(m) {
+                return m !== '' && m !== null && m !== undefined && !isNaN(parseFloat(m));
+            },
+            get gradedCount() {
+                return this.rows.filter(r => this.hasValue(r.marks)).length;
+            },
+            get invalidCount() {
+                return this.rows.filter(r => this.isInvalid(r.marks)).length;
+            },
+            get progress() {
+                return this.rows.length ? Math.round((this.gradedCount / this.rows.length) * 100) : 0;
+            },
+            isInvalid(m) {
+                if (!this.hasValue(m)) return false;
+                const v = parseFloat(m);
+                return v < 0 || v > this.fullMarks;
+            },
+            gradeFor(m) {
+                if (!this.hasValue(m)) return '\u2014';
+                if (this.isInvalid(m)) return '!';
+                const v = parseFloat(m);
+                const r = this.ranges.find(x => v >= x.min && v <= x.max);
+                return r ? r.grade : '?';
+            },
+            gradeChipClass(m) {
+                if (!this.hasValue(m)) return 'bg-gray-100 text-gray-300';
+                if (this.isInvalid(m)) return 'bg-red-100 text-red-700';
+                return parseFloat(m) >= this.passMarks ?
+                    'bg-green-100 text-green-700' :
+                    'bg-amber-100 text-amber-700';
+            },
+            moveFocus(e, dir) {
+                const inputs = Array.from(this.$root.querySelectorAll('input.js-mark'));
+                const idx = inputs.indexOf(e.target);
+                const next = inputs[idx + dir];
+                if (next) {
+                    next.focus();
+                    next.select();
+                }
+            },
+            clearAll() {
+                Swal.fire({
+                    title: 'Clear all marks?',
+                    text: 'This only clears the form. Nothing is deleted until you save.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Clear',
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        this.rows.forEach(r => {
+                            r.marks = '';
+                            r.remarks = '';
+                        });
+                        this.dirty = true;
+                    }
+                });
+            },
+            save() {
+                if (this.invalidCount > 0) {
                     Swal.fire({
-                        title: 'Save grades?',
-                        html: `Saving <b>${this.gradedCount}</b> of <b>${this.rows.length}</b> students for <b>${this.subjectName}</b>.`,
-                        icon: 'question',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, save',
-                        confirmButtonColor: primary,
-                    }).then(res => {
-                        if (res.isConfirmed) {
-                            this.dirty = false;
-                            window.removeEventListener('beforeunload', this._guard);
-                            this.$root.submit();
-                        }
+                        icon: 'error',
+                        title: 'Fix invalid marks',
+                        text: `${this.invalidCount} mark(s) are outside 0\u2013${this.fullMarks}.`,
                     });
-                },
-            };
-        }
-    </script>
-    @endpush
+                    return;
+                }
+                const primary = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--primary-color').trim() || '#1e40af';
+                Swal.fire({
+                    title: 'Save grades?',
+                    html: `Saving <b>${this.gradedCount}</b> of <b>${this.rows.length}</b> students for <b>${this.subjectName}</b>.`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, save',
+                    confirmButtonColor: primary,
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        this.dirty = false;
+                        window.removeEventListener('beforeunload', this._guard);
+                        this.$root.submit();
+                    }
+                });
+            },
+            publishExam() {
+                const primary = getComputedStyle(document.documentElement)
+                    .getPropertyValue('--primary-color').trim() || '#1e40af';
+                Swal.fire({
+                    title: 'Publish this exam?',
+                    html: 'Guardians will receive an email with the exam results. <b>This cannot be undone easily.</b>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, publish',
+                    confirmButtonColor: '#16a34a',
+                }).then(res => {
+                    if (res.isConfirmed) {
+                        const examId = document.querySelector('[data-exam-id]')?.dataset.examId;
+                        if (!examId) {
+                            Swal.fire('Error', 'Exam ID not found', 'error');
+                            return;
+                        }
+                        fetch(`/exams/${examId}/publish`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                                    'Accept': 'application/json',
+                                }
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire('Published!', 'Exam published and guardians notified.', 'success')
+                                        .then(() => window.location.reload());
+                                } else {
+                                    Swal.fire('Error', data.message || 'Failed to publish exam', 'error');
+                                }
+                            })
+                            .catch(err => {
+                                Swal.fire('Error', 'Network error: ' + err.message, 'error');
+                            });
+                    }
+                });
+            },
+        };
+    }
+</script>
+@endpush
 @endonce
