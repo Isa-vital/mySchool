@@ -54,7 +54,7 @@
 
     <form method="POST" action="{{ route('grades.save-grid', $reportExam) }}"
           x-data="gradeGrid({{ $componentExams->count() }})"
-          @submit.prevent="confirmSave()">
+            x-on:submit.prevent="confirmSave()">
         @csrf
         <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
         <input type="hidden" name="subject_id" value="{{ $selectedSubjectId }}">
@@ -113,7 +113,7 @@
                                 $rowMarks[$compExam->id] = $gridGrades[$student->id][$compExam->id] ?? null;
                             }
                         @endphp
-                        <tr class="hover:bg-gray-50" x-data='gradeRow({{ $weightTotal }}, @json($gridExamsPayload))' @input="onInput(); $dispatch('row-updated')">
+                        <tr class="hover:bg-gray-50" x-data='gradeRow({{ $weightTotal }}, @json($gridExamsPayload))' x-on:input="onInput(); $dispatch('row-updated')">
                             <td class="px-4 py-2 text-gray-400 sticky left-0 bg-white">{{ $i + 1 }}</td>
                             <td class="px-4 py-2 sticky left-8 bg-white">
                                 <div class="font-medium text-gray-900">{{ $student->full_name }}</div>
@@ -130,9 +130,9 @@
                                     data-full="{{ $fullMarks[$compExam->id] ?? 100 }}"
                                     placeholder="–"
                                     class="w-20 text-center rounded border-gray-300 shadow-sm text-sm focus:ring-2 focus:ring-blue-300"
-                                    @keydown.enter.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
-                                    @keydown.arrow-down.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
-                                    @keydown.arrow-up.prevent="$el.closest('tr').previousElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
+                                    x-on:keydown.enter.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
+                                    x-on:keydown.arrow-down.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
+                                    x-on:keydown.arrow-up.prevent="$el.closest('tr').previousElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
                                     x-ref="mark_{{ $compExam->id }}"
                                 >
                             </td>
@@ -177,7 +177,6 @@
     </div>
     @endif
 
-@push('scripts')
 <script>
     @php
         $gradingRangesPayload = collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))
@@ -278,5 +277,4 @@
         };
     }
 </script>
-@endpush
 </x-app-layout>
