@@ -115,7 +115,7 @@
 
     {{-- JS: Filter terms by selected academic year --}}
     <script>
-        const termsByYear = @json($academicYears - > mapWithKeys(fn($y) => [$y - > id => $y - > terms]));
+        const termsByYear = @json($academicYears->mapWithKeys(fn($y) => [$y->id => $y->terms]));
         const yearSelect = document.getElementById('academic_year_id');
         const termSelect = document.getElementById('term_id');
         const oldTermId = '{{ old("term_id") }}';
