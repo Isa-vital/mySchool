@@ -40,6 +40,8 @@ class SampleDataSeeder extends Seeder
 {
     public function run(): void
     {
+        $faker = \Faker\Factory::create();
+
         $this->command->info('Seeding Ugandan sample data...');
 
         // ── Academic Years & Terms ──────────────────────────────
@@ -204,15 +206,15 @@ class SampleDataSeeder extends Seeder
                 'first_name' => $s['first_name'],
                 'last_name' => $s['last_name'],
                 'gender' => $s['gender'],
-                'date_of_birth' => fake()->dateTimeBetween('-55 years', '-25 years')->format('Y-m-d'),
-                'phone' => '07' . fake()->numerify('########'),
+                'date_of_birth' => $faker->dateTimeBetween('-55 years', '-25 years')->format('Y-m-d'),
+                'phone' => '07' . $faker->numerify('########'),
                 'email' => strtolower($s['first_name']) . '.' . strtolower($s['last_name']) . '@myschool.ug',
-                'address' => fake()->randomElement(['Kampala', 'Wakiso', 'Mukono', 'Entebbe', 'Jinja', 'Mbarara']),
+                'address' => $faker->randomElement(['Kampala', 'Wakiso', 'Mukono', 'Entebbe', 'Jinja', 'Mbarara']),
                 'designation' => $s['designation'],
                 'department' => $s['department'],
                 'qualification' => $s['qualification'],
-                'join_date' => fake()->dateTimeBetween('-8 years', '-1 year')->format('Y-m-d'),
-                'employment_type' => $s['designation'] === 'Teacher' ? 'full-time' : fake()->randomElement(['full-time', 'full-time', 'contract']),
+                'join_date' => $faker->dateTimeBetween('-8 years', '-1 year')->format('Y-m-d'),
+                'employment_type' => $s['designation'] === 'Teacher' ? 'full-time' : $faker->randomElement(['full-time', 'full-time', 'contract']),
                 'is_active' => true,
             ]);
         }
@@ -249,11 +251,11 @@ class SampleDataSeeder extends Seeder
                 'last_name'    => $g['last_name'],
                 'relationship' => $g['relationship'],
                 'phone'        => $g['phone'],
-                'alt_phone'    => '07' . fake()->numerify('########'),
+                'alt_phone'    => '07' . $faker->numerify('########'),
                 'email'        => strtolower($g['first_name']) . '.' . strtolower($g['last_name']) . '@gmail.com',
-                'address'      => fake()->randomElement(['Ntinda, Kampala', 'Bweyogerere, Wakiso', 'Naalya, Wakiso', 'Bugolobi, Kampala', 'Kireka, Wakiso', 'Kira, Wakiso', 'Namugongo, Wakiso', 'Lubowa, Wakiso', 'Nansana, Wakiso', 'Entebbe']),
+                'address'      => $faker->randomElement(['Ntinda, Kampala', 'Bweyogerere, Wakiso', 'Naalya, Wakiso', 'Bugolobi, Kampala', 'Kireka, Wakiso', 'Kira, Wakiso', 'Namugongo, Wakiso', 'Lubowa, Wakiso', 'Nansana, Wakiso', 'Entebbe']),
                 'occupation'   => $g['occupation'],
-                'national_id'  => 'CM' . fake()->numerify('#############'),
+                'national_id'  => 'CM' . $faker->numerify('#############'),
             ]);
         }
         $this->command->info('  ✓ Guardians (' . count($guardianRecords) . ')');
@@ -274,7 +276,7 @@ class SampleDataSeeder extends Seeder
             foreach ($sections as $section) {
                 for ($s = 0; $s < $studentsPerSection; $s++) {
                     $studentIndex++;
-                    $gender = fake()->randomElement(['Male', 'Female']);
+                    $gender = $faker->randomElement(['Male', 'Female']);
                     $firstName = $gender === 'Male'
                         ? $boyFirstNames[array_rand($boyFirstNames)]
                         : $girlFirstNames[array_rand($girlFirstNames)];
@@ -282,22 +284,22 @@ class SampleDataSeeder extends Seeder
 
                     $student = Student::create([
                         'admission_number' => 'ADM' . str_pad($studentIndex, 5, '0', STR_PAD_LEFT),
-                        'lin' => 'UG' . fake()->unique()->numerify('##########'), // EMIS Learner Identification Number
+                        'lin' => 'UG' . $faker->unique()->numerify('##########'), // EMIS Learner Identification Number
                         'first_name' => $firstName,
                         'last_name' => $lastName,
-                        'other_names' => fake()->optional(0.3)->randomElement(['Mukisa', 'Kisakye', 'Babirye', 'Wasswa', 'Nabukeera', 'Kiggundu']),
+                        'other_names' => $faker->optional(0.3)->randomElement(['Mukisa', 'Kisakye', 'Babirye', 'Wasswa', 'Nabukeera', 'Kiggundu']),
                         'gender' => $gender,
-                        'date_of_birth' => fake()->dateTimeBetween(
+                        'date_of_birth' => $faker->dateTimeBetween(
                             '-' . (5 + $class->level) . ' years',
                             '-' . (3 + $class->level) . ' years'
                         )->format('Y-m-d'),
                         'nationality' => 'Ugandan',
-                        'religion' => fake()->randomElement(['Catholic', 'Protestant', 'Muslim', 'SDA', 'Pentecostal', 'Orthodox']),
-                        'address' => fake()->randomElement(['Ntinda', 'Bukoto', 'Naalya', 'Kira', 'Namugongo', 'Kireka', 'Bweyogerere', 'Nansana', 'Entebbe', 'Mukono', 'Gayaza', 'Kasubi']),
-                        'previous_school' => fake()->optional(0.4)->randomElement(['Bright Future PS', 'St. Joseph PS Naggalama', 'Kampala Parents School', 'Greenhill Academy', 'St. Mary\'s Kisubi', null]),
-                        'admission_date' => fake()->dateTimeBetween('-3 years', '-1 month')->format('Y-m-d'),
+                        'religion' => $faker->randomElement(['Catholic', 'Protestant', 'Muslim', 'SDA', 'Pentecostal', 'Orthodox']),
+                        'address' => $faker->randomElement(['Ntinda', 'Bukoto', 'Naalya', 'Kira', 'Namugongo', 'Kireka', 'Bweyogerere', 'Nansana', 'Entebbe', 'Mukono', 'Gayaza', 'Kasubi']),
+                        'previous_school' => $faker->optional(0.4)->randomElement(['Bright Future PS', 'St. Joseph PS Naggalama', 'Kampala Parents School', 'Greenhill Academy', 'St. Mary\'s Kisubi', null]),
+                        'admission_date' => $faker->dateTimeBetween('-3 years', '-1 month')->format('Y-m-d'),
                         'status' => 'active',
-                        'boarding_status' => $class->level >= 8 ? fake()->randomElement(['day', 'boarding', 'boarding']) : 'day',
+                        'boarding_status' => $class->level >= 8 ? $faker->randomElement(['day', 'boarding', 'boarding']) : 'day',
                     ]);
 
                     // Attach guardian (pair guardians by family)
@@ -432,11 +434,11 @@ class SampleDataSeeder extends Seeder
             }
 
             // Some students have made payments
-            $paymentChance = fake()->randomFloat(2, 0, 1);
+            $paymentChance = $faker->randomFloat(2, 0, 1);
             if ($paymentChance > 0.3) { // 70% have paid something
                 $amountPaid = ($paymentChance > 0.7)
                     ? $totalAmount // fully paid
-                    : round($totalAmount * fake()->randomFloat(2, 0.3, 0.8), -3); // partial
+                    : round($totalAmount * $faker->randomFloat(2, 0.3, 0.8), -3); // partial
 
                 $paymentCount++;
                 Payment::create([
@@ -444,9 +446,9 @@ class SampleDataSeeder extends Seeder
                     'invoice_id' => $invoice->id,
                     'student_id' => $student->id,
                     'amount' => $amountPaid,
-                    'payment_method' => fake()->randomElement(['cash', 'mobile_money', 'bank_transfer']),
-                    'reference' => fake()->optional(0.5)->numerify('MM################'),
-                    'payment_date' => fake()->dateTimeBetween('2026-02-02', '2026-02-12')->format('Y-m-d'),
+                    'payment_method' => $faker->randomElement(['cash', 'mobile_money', 'bank_transfer']),
+                    'reference' => $faker->optional(0.5)->numerify('MM################'),
+                    'payment_date' => $faker->dateTimeBetween('2026-02-02', '2026-02-12')->format('Y-m-d'),
                     'received_by' => $admin?->id,
                 ]);
 
@@ -477,7 +479,7 @@ class SampleDataSeeder extends Seeder
                     'section_id' => $rec['section']->id,
                     'academic_year_id' => $ay2026->id,
                     'date' => $day,
-                    'status' => fake()->randomElement(['present', 'present', 'present', 'present', 'present', 'present', 'present', 'present', 'absent', 'late']),
+                    'status' => $faker->randomElement(['present', 'present', 'present', 'present', 'present', 'present', 'present', 'present', 'absent', 'late']),
                     'marked_by' => $admin?->id,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -508,7 +510,7 @@ class SampleDataSeeder extends Seeder
             $subjects = ($class->level <= 7) ? $primarySubjects : $secondarySubjects;
 
             foreach ($subjects as $subject) {
-                $marks = fake()->numberBetween(25, 98);
+                $marks = $faker->numberBetween(25, 98);
                 $gradeLetter = 'F9';
                 foreach ($gradeRanges as $r) {
                     if ($marks >= $r['min_mark'] && $marks <= $r['max_mark']) {
@@ -696,7 +698,7 @@ class SampleDataSeeder extends Seeder
                 'book_id' => $book->id,
                 'borrower_type' => 'App\\Models\\Student',
                 'borrower_id' => $rec['student']->id,
-                'issue_date' => fake()->dateTimeBetween('2026-02-03', '2026-02-10')->format('Y-m-d'),
+                'issue_date' => $faker->dateTimeBetween('2026-02-03', '2026-02-10')->format('Y-m-d'),
                 'due_date' => '2026-02-24',
                 'status' => 'issued',
                 'issued_by' => $admin?->id,
@@ -713,3 +715,6 @@ class SampleDataSeeder extends Seeder
         $this->command->info("   Guardians: " . count($guardianRecords));
     }
 }
+
+
+
