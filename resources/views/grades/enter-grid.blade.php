@@ -179,14 +179,29 @@
 
 @push('scripts')
 <script>
+    @php
+        $gradingRangesPayload = collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))
+            ->map(function ($r) {
+                return [
+                    'grade' => $r['grade'],
+                    'min' => (float) $r['min'],
+                    'max' => (float) $r['max'],
+                ];
+            })
+            ->values();
+    @endphp
+
     // Grading ranges from server for live grade preview
-    const gradingRanges = @json(
-        collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))->map(fn($r) => [
-            'grade' => $r['grade'],
-            'min'   => (float) $r['min'],
-            'max'   => (float) $r['max'],
-        ])->values()
-    );
+    // CHANGED: simplified payload rendering to prevent Blade parser mismatch in production.
+    // CHANGED: previous inline expression preserved for reference.
+    // const gradingRanges = @json(
+    //     collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))->map(fn($r) => [
+    //         'grade' => $r['grade'],
+    //         'min'   => (float) $r['min'],
+    //         'max'   => (float) $r['max'],
+    //     ])->values()
+    // );
+    const gradingRanges = @json($gradingRangesPayload);
 
     function resolveGrade(pct) {
         for (const r of gradingRanges) {
