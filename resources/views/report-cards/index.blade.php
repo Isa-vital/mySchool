@@ -14,17 +14,31 @@
                     @endforeach
                 </select>
             </div>
-            <div class="w-48">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Exam</label>
-                <select name="exam_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
-                    <option value="">Select Exam</option>
-                    @foreach($exams as $exam)
-                    <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>
-                        {{ $exam->name }}
-                        @if($exam->is_report_card)
-                        (Report)
-                        @elseif(!$exam->is_published)
-                        (Draft)
+                    {{-- CHANGED: replaced Exam selector with Term selector as requested. --}}
+                    {{--
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Exam</label>
+                    <select name="exam_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="">Select Exam</option>
+                        @foreach($exams as $exam)
+                        <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>
+                            {{ $exam->name }}
+                            @if($exam->is_report_card)
+                            (Report)
+                            @elseif(!$exam->is_published)
+                            (Draft)
+                            @endif
+                        </option>
+                        @endforeach
+                    </select>
+                    --}}
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
+                    <select name="term_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="">Select Term</option>
+                        @foreach($terms as $term)
+                        <option value="{{ $term->id }}" {{ request('term_id') == $term->id ? 'selected' : '' }}>
+                            {{ $term->name }}
+                            @if($term->academicYear)
+                            ({{ $term->academicYear->name }})
                         @endif
                     </option>
                     @endforeach
@@ -52,8 +66,12 @@
                     <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $student->full_name }}</td>
                     <td class="px-6 py-3 text-sm text-gray-600">{{ $student->admission_number }}</td>
                     <td class="px-6 py-3 text-right text-sm">
-                        <a href="{{ route('report-cards.show', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-blue-600 hover:text-blue-800 mr-3">View</a>
-                        <a href="{{ route('report-cards.pdf', ['student' => $student->id, 'exam' => request('exam_id')]) }}" class="text-green-600 hover:text-green-800">PDF</a>
+                        @if(isset($selectedExam) && $selectedExam)
+                        <a href="{{ route('report-cards.show', ['student' => $student->id, 'exam' => $selectedExam->id, 'class_id' => request('class_id'), 'term_id' => request('term_id')]) }}" class="text-blue-600 hover:text-blue-800 mr-3">View</a>
+                        <a href="{{ route('report-cards.pdf', ['student' => $student->id, 'exam' => $selectedExam->id, 'class_id' => request('class_id'), 'term_id' => request('term_id')]) }}" class="text-green-600 hover:text-green-800">PDF</a>
+                        @else
+                        <span class="text-gray-400">No report exam in term</span>
+                        @endif
                     </td>
                 </tr>
                 @endforeach
@@ -61,6 +79,6 @@
         </table>
     </div>
     @else
-    <div class="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">Select a class and exam to view report cards.</div>
+    <div class="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">Select a class and term to view report cards.</div>
     @endif
 </x-app-layout>

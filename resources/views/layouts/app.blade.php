@@ -52,21 +52,8 @@
                ;
             */
 
-            --primary-color: {
-                    {
-                    setting('primary_color', '#1e40af')
-                }
-            }
-
-            ;
-
-            --secondary-color: {
-                    {
-                    setting('secondary_color', '#7c3aed')
-                }
-            }
-
-            ;
+            --primary-color: {{ setting('primary_color', '#1e40af') }};
+            --secondary-color: {{ setting('secondary_color', '#7c3aed') }};
         }
     </style>
 </head>

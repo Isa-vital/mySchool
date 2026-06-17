@@ -19,15 +19,41 @@
         }
 
         .header {
-            text-align: center;
             margin-bottom: 20px;
-            border-bottom: 2px solid #1e40af;
+            border-bottom: 2px solid {{ setting('primary_color', '#1e40af') }};
             padding-bottom: 15px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-left,
+        .header-right {
+            width: 18%;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .header-middle {
+            width: 64%;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .badge,
+        .student-photo {
+            width: 85px;
+            height: 85px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            object-fit: cover;
         }
 
         .header h1 {
             font-size: 18px;
-            color: #1e40af;
+            color: {{ setting('primary_color', '#1e40af') }};
         }
 
         .header p {
@@ -42,6 +68,7 @@
             margin-top: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            color: {{ setting('primary_color', '#1e40af') }};
         }
 
         .info-grid {
@@ -99,8 +126,9 @@
         .summary {
             margin-top: 15px;
             padding: 10px;
-            background: #f0f4ff;
+            background: #f9fbff;
             border-radius: 4px;
+            border: 1px solid #e5e7eb;
         }
 
         .summary p {
@@ -135,11 +163,35 @@
 </head>
 
 <body>
+    @php
+        $badgePath = setting('school_badge') ? public_path('storage/' . setting('school_badge')) : null;
+        $logoPath = setting('school_logo') ? public_path('storage/' . setting('school_logo')) : null;
+        $studentPhotoPath = $student->photo ? public_path('storage/' . $student->photo) : null;
+        $badgeFile = $badgePath && file_exists($badgePath) ? $badgePath : ($logoPath && file_exists($logoPath) ? $logoPath : null);
+        $studentPhotoFile = $studentPhotoPath && file_exists($studentPhotoPath) ? $studentPhotoPath : null;
+    @endphp
+
     <div class="header">
-        <h1>{{ setting('school_name', 'MySchool') }}</h1>
-        <p>{{ setting('school_address', '') }}</p>
-        <p>{{ setting('school_phone', '') }} | {{ setting('school_email', '') }}</p>
-        <div class="title">Student Report Card</div>
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    @if($badgeFile)
+                    <img src="{{ $badgeFile }}" alt="School Badge" class="badge">
+                    @endif
+                </td>
+                <td class="header-middle">
+                    <h1>{{ setting('school_name', 'MySchool') }}</h1>
+                    <p>{{ setting('school_address', '') }}</p>
+                    <p>{{ setting('school_phone', '') }} | {{ setting('school_email', '') }}</p>
+                    <div class="title">{{ $formatted['format'] === 'o-level' ? 'O-Level Progress Report' : 'Primary Progress Report' }}</div>
+                </td>
+                <td class="header-right">
+                    @if($studentPhotoFile)
+                    <img src="{{ $studentPhotoFile }}" alt="Student Photo" class="student-photo">
+                    @endif
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="info-grid">
@@ -161,6 +213,16 @@
             <div class="info-cell">
                 <span class="label">Class:</span>
                 <span class="value">{{ $enrollment->schoolClass->name ?? '-' }} {{ $enrollment->section->name ?? '' }}</span>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-cell">
+                <span class="label">Gender / Age:</span>
+                <span class="value">{{ $student->gender ?? '-' }} / {{ $student->date_of_birth ? $student->date_of_birth->age . ' yrs' : '-' }}</span>
+            </div>
+            <div class="info-cell">
+                <span class="label">Boarding Status:</span>
+                <span class="value">{{ ucfirst($student->boarding_status ?? 'day') }}</span>
             </div>
         </div>
         <div class="info-row">
@@ -318,6 +380,13 @@
         <p><strong>Head Teacher's Comment:</strong> {{ $reportCard->head_teacher_comment ?? '.....................................................' }}</p>
         @if($reportCard->next_term_begins)
         <p><strong>Next Term Begins:</strong> {{ $reportCard->next_term_begins->format('d M Y') }}</p>
+        @endif
+        @if(($componentExams ?? collect())->count() > 1)
+        <p><strong>Assessment Components:</strong>
+            @foreach($componentExams as $componentExam)
+            {{ $componentExam->name }}@if(!$loop->last), @endif
+            @endforeach
+        </p>
         @endif
     </div>
 

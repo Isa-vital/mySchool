@@ -4,17 +4,35 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Report Card: {{ $student->full_name }}</h2>
             <div class="flex items-center space-x-3">
                 <a href="{{ route('report-cards.pdf', ['student' => $student->id, 'exam' => $exam->id]) }}" class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-green-600 hover:bg-green-700">Download PDF</a>
-                <a href="{{ route('report-cards.index', ['class_id' => request('class_id'), 'exam_id' => $exam->id]) }}" class="text-sm text-gray-600 hover:text-gray-900">&larr; Back</a>
+                {{-- CHANGED: back link now preserves class + term filter (instead of exam filter). --}}
+                {{-- <a href="{{ route('report-cards.index', ['class_id' => request('class_id'), 'exam_id' => $exam->id]) }}" class="text-sm text-gray-600 hover:text-gray-900">&larr; Back</a> --}}
+                <a href="{{ route('report-cards.index', ['class_id' => request('class_id'), 'term_id' => request('term_id')]) }}" class="text-sm text-gray-600 hover:text-gray-900">&larr; Back</a>
             </div>
         </div>
     </x-slot>
 
     <div class="bg-white rounded-xl shadow-sm border p-8 max-w-3xl mx-auto">
         {{-- Header --}}
-        <div class="text-center mb-6 border-b pb-6">
-            <h1 class="text-2xl font-bold text-gray-900">{{ setting('school_name', 'MySchool') }}</h1>
-            <p class="text-sm text-gray-600">{{ setting('school_motto', '') }}</p>
-            <p class="text-lg font-semibold text-gray-800 mt-2">{{ $exam->name }}</p>
+        <div class="mb-6 border-b pb-6">
+            <div class="grid grid-cols-12 gap-4 items-center">
+                <div class="col-span-2">
+                    @if(setting('school_badge'))
+                    <img src="{{ asset('storage/' . setting('school_badge')) }}" alt="School Badge" class="w-16 h-16 object-cover rounded border mx-auto">
+                    @elseif(setting('school_logo'))
+                    <img src="{{ asset('storage/' . setting('school_logo')) }}" alt="School Logo" class="w-16 h-16 object-cover rounded border mx-auto">
+                    @endif
+                </div>
+                <div class="col-span-8 text-center">
+                    <h1 class="text-2xl font-bold text-gray-900">{{ setting('school_name', 'MySchool') }}</h1>
+                    <p class="text-sm text-gray-600">{{ setting('school_motto', '') }}</p>
+                    <p class="text-lg font-semibold text-gray-800 mt-2">{{ $exam->name }}</p>
+                </div>
+                <div class="col-span-2 text-right">
+                    @if($student->photo)
+                    <img src="{{ asset('storage/' . $student->photo) }}" alt="Student Photo" class="w-16 h-16 object-cover rounded border ml-auto">
+                    @endif
+                </div>
+            </div>
         </div>
 
         {{-- Student Info --}}

@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\Grade;
 use App\Models\ReportCard;
 use App\Models\SchoolClass;
+use App\Models\Term;
 use Spatie\Permission\Models\Permission;
 use App\Services\AssessmentGradingService;
 use App\Services\ReportCardCompositionService;
@@ -36,22 +37,45 @@ class ReportCardController extends Controller
             $examsQuery->where('is_published', true);
         }
 
+        // CHANGED: keep exams list for backward compatibility/reference, but UI uses term selector.
         $exams = $examsQuery->get();
+        $terms = Term::query()
+            ->whereHas('academicYear')
+            ->orderByDesc('start_date')
+            ->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
+        $selectedExam = null;
 
         $students = collect();
-        if ($request->filled('class_id') && $request->filled('exam_id')) {
-            $exam = Exam::find($request->exam_id);
-            if ($exam) {
-                $students = Student::whereHas('enrollments', function ($q) use ($request, $exam) {
+        if ($request->filled('class_id') && $request->filled('term_id')) {
+            $examForTermQuery = Exam::query()
+                ->where('term_id', $request->term_id)
+                ->orderByDesc('is_report_card')
+                ->orderByDesc('is_published')
+                ->orderByDesc('created_at');
+
+            if (!$user?->hasRole('Super Admin') && !$canEditReportCards) {
+                $examForTermQuery->where('is_published', true);
+            }
+
+            // Prefer designated composite report exam for the selected term.
+            $selectedExam = (clone $examForTermQuery)->where('is_report_card', true)->first();
+
+            // CHANGED: fallback to latest exam in term if no report exam is flagged yet.
+            if (!$selectedExam) {
+                $selectedExam = $examForTermQuery->first();
+            }
+
+            if ($selectedExam) {
+                $students = Student::whereHas('enrollments', function ($q) use ($request, $selectedExam) {
                     $q->where('school_class_id', $request->class_id)
-                        ->where('academic_year_id', $exam->academic_year_id)
+                        ->where('academic_year_id', $selectedExam->academic_year_id)
                         ->where('status', 'active');
                 })->orderBy('first_name')->get();
             }
         }
 
-        return view('report-cards.index', compact('exams', 'classes', 'students'));
+        return view('report-cards.index', compact('exams', 'terms', 'classes', 'students', 'selectedExam'));
     }
 
     public function show(Student $student, Exam $exam)
