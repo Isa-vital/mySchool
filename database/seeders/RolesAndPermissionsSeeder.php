@@ -83,6 +83,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'grades.create',
             'grades.edit',
             'report_cards.view',
+            'report_cards.edit',
             'report_cards.generate',
 
             // Attendance
