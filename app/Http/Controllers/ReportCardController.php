@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\Grade;
 use App\Models\ReportCard;
 use App\Models\SchoolClass;
+use Spatie\Permission\Models\Permission;
 use App\Services\UgandaGrading;
 use App\Services\ReportCardFormatter;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -19,8 +20,17 @@ class ReportCardController extends Controller
         // CHANGED: admins can see all exams (published + unpublished) so they can enter
         // report cards before publishing. Other users only see published exams.
         $examsQuery = Exam::with(['academicYear', 'term'])->orderBy('created_at', 'desc');
-        
-        if (!auth()->user()?->hasRole('Super Admin') && !auth()->user()?->hasPermissionTo('report_cards.edit')) {
+
+        $user = auth()->user();
+        $canEditReportCards = false;
+        if ($user) {
+            // CHANGED: in some environments this permission might not exist yet.
+            // hasPermissionTo throws when the permission record is missing.
+            $hasPermissionDefinition = Permission::where('name', 'report_cards.edit')->where('guard_name', 'web')->exists();
+            $canEditReportCards = $hasPermissionDefinition ? $user->hasPermissionTo('report_cards.edit') : false;
+        }
+
+        if (!$user?->hasRole('Super Admin') && !$canEditReportCards) {
             $examsQuery->where('is_published', true);
         }
         
