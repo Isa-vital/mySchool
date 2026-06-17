@@ -8,6 +8,12 @@ use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
 {
+    protected array $jsonScaleKeys = [
+        'primary_achievement_levels',
+        'olevel_competency_scale',
+        'alevel_grade_scale',
+    ];
+
     public function index()
     {
         $settings = Setting::allGrouped();
@@ -21,6 +27,10 @@ class SettingController extends Controller
         foreach ($data as $key => $value) {
             $setting = Setting::where('key', $key)->first();
             if (!$setting) continue;
+
+            if (in_array($key, $this->jsonScaleKeys, true)) {
+                $this->validateJsonScaleSetting($key, $value);
+            }
 
             if ($setting->type === 'image' && $request->hasFile($key)) {
                 // Delete old image
@@ -47,5 +57,23 @@ class SettingController extends Controller
         Setting::flushCache();
 
         return redirect()->route('settings.index')->with('success', 'Settings updated successfully.');
+    }
+
+    protected function validateJsonScaleSetting(string $key, mixed $value): void
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return;
+        }
+
+        $decoded = json_decode($value, true);
+        abort_unless(is_array($decoded), 422, "Invalid JSON provided for {$key}.");
+
+        foreach ($decoded as $index => $item) {
+            abort_unless(
+                is_array($item) && isset($item['grade'], $item['min'], $item['max']),
+                422,
+                "Each grading band in {$key} must include grade, min and max (item " . ($index + 1) . ")."
+            );
+        }
     }
 }

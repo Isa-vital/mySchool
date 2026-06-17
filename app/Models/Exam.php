@@ -16,6 +16,8 @@ class Exam extends Model
         'is_published',
         'assessment_format',
         'max_points',
+        'is_report_card',
+        'grading_scale_id',
     ];
 
     protected $casts = [
@@ -24,6 +26,7 @@ class Exam extends Model
         'is_published' => 'boolean',
         'assessment_format' => 'string',
         'max_points' => 'integer',
+        'is_report_card' => 'boolean',
     ];
 
     public function academicYear()
@@ -44,5 +47,26 @@ class Exam extends Model
     public function grades()
     {
         return $this->hasMany(Grade::class);
+    }
+
+    public function gradingScale()
+    {
+        return $this->belongsTo(GradingScale::class);
+    }
+
+    public function reportComponents()
+    {
+        return $this->belongsToMany(self::class, 'exam_report_components', 'report_exam_id', 'component_exam_id')
+            ->withPivot(['weight', 'display_order'])
+            ->withTimestamps()
+            ->orderBy('exam_report_components.display_order')
+            ->orderBy('exam_report_components.id');
+    }
+
+    public function parentReportExams()
+    {
+        return $this->belongsToMany(self::class, 'exam_report_components', 'component_exam_id', 'report_exam_id')
+            ->withPivot(['weight', 'display_order'])
+            ->withTimestamps();
     }
 }

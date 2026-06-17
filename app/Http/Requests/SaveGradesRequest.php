@@ -18,7 +18,7 @@ class SaveGradesRequest extends FormRequest
             'subject_id' => 'required|exists:subjects,id',
             'grades' => 'required|array|min:1',
             'grades.*.student_id' => 'required|exists:students,id',
-            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:100',
+            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:500',
             'grades.*.remarks' => 'nullable|string|max:500',
         ];
     }

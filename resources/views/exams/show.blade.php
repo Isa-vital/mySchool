@@ -27,9 +27,9 @@
                     <p class="text-xs text-gray-500 uppercase">Dates</p>
                     <p class="text-sm font-medium text-gray-900">
                         @if($exam->start_date)
-                            {{ $exam->start_date->format('d M') }}{{ $exam->end_date ? ' – ' . $exam->end_date->format('d M Y') : '' }}
+                        {{ $exam->start_date->format('d M') }}{{ $exam->end_date ? ' – ' . $exam->end_date->format('d M Y') : '' }}
                         @else
-                            -
+                        -
                         @endif
                     </p>
                 </div>
@@ -37,14 +37,64 @@
                     <p class="text-xs text-gray-500 uppercase">Status</p>
                     <span class="px-2 py-1 text-xs font-medium rounded-full {{ $exam->is_published ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">{{ $exam->is_published ? 'Published' : 'Draft' }}</span>
                 </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase">Format</p>
+                    <p class="text-sm font-medium text-gray-900">{{ ucfirst($exam->assessment_format ?? 'primary') }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase">Report Type</p>
+                    <p class="text-sm font-medium text-gray-900">{{ $exam->is_report_card ? 'Composite Report Card' : 'Single Exam' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase">Grading Profile</p>
+                    <p class="text-sm font-medium text-gray-900">{{ $exam->gradingScale->name ?? 'Format Default' }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 uppercase">Max Marks / Points</p>
+                    <p class="text-sm font-medium text-gray-900">{{ $exam->max_points ?? 100 }}</p>
+                </div>
             </div>
             @if($exam->description)
-                <div class="mt-4 pt-4 border-t">
-                    <p class="text-xs text-gray-500 uppercase mb-1">Description</p>
-                    <p class="text-sm text-gray-700">{{ $exam->description }}</p>
-                </div>
+            <div class="mt-4 pt-4 border-t">
+                <p class="text-xs text-gray-500 uppercase mb-1">Description</p>
+                <p class="text-sm text-gray-700">{{ $exam->description }}</p>
+            </div>
             @endif
         </div>
+
+        @if($exam->is_report_card)
+        <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-sm font-semibold text-gray-800">Report Card Components</h3>
+            </div>
+            @if($exam->reportComponents->count())
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exam</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Term</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Academic Year</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Weight</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($exam->reportComponents as $componentExam)
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ $componentExam->name }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ $componentExam->term->name ?? '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ $componentExam->academicYear->name ?? '-' }}</td>
+                            <td class="px-4 py-3 text-sm text-center font-medium text-gray-900">{{ rtrim(rtrim(number_format((float) $componentExam->pivot->weight, 2, '.', ''), '0'), '.') }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @else
+            <div class="px-6 py-8 text-center text-gray-400 text-sm">No component exams selected yet.</div>
+            @endif
+        </div>
+        @endif
 
         {{-- Exam Schedules --}}
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -79,9 +129,9 @@
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $schedule->exam_date?->format('d M Y') ?? '-' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 @if($schedule->start_time && $schedule->end_time)
-                                    {{ $schedule->start_time }} – {{ $schedule->end_time }}
+                                {{ $schedule->start_time }} – {{ $schedule->end_time }}
                                 @else
-                                    -
+                                -
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $schedule->room ?? '-' }}</td>
@@ -99,7 +149,7 @@
                 </table>
             </div>
             @else
-                <div class="px-6 py-8 text-center text-gray-400 text-sm">No schedules yet. Add one below.</div>
+            <div class="px-6 py-8 text-center text-gray-400 text-sm">No schedules yet. Add one below.</div>
             @endif
 
             {{-- Add Schedule Form --}}
@@ -113,7 +163,7 @@
                             <select name="school_class_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                                 <option value="">Class *</option>
                                 @foreach($classes as $class)
-                                    <option value="{{ $class->id }}">{{ $class->name }}</option>
+                                <option value="{{ $class->id }}">{{ $class->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -121,7 +171,7 @@
                             <select name="subject_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                                 <option value="">Subject *</option>
                                 @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -155,15 +205,21 @@
         {{-- Quick Actions --}}
         <div class="flex flex-wrap gap-3">
             @can('grades.create')
+            @if(!$exam->is_report_card)
             <a href="{{ route('grades.enter', $exam) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
                 Enter Grades
             </a>
+            @endif
             @endcan
             @can('report_cards.view')
             @if($exam->is_published)
             <a href="{{ route('report-cards.index', ['exam_id' => $exam->id]) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg bg-green-600 hover:bg-green-700">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 View Report Cards
             </a>
             @endif

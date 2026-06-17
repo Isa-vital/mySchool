@@ -29,6 +29,21 @@
             @endif
         </div>
 
+        @if(($componentExams ?? collect())->count() > 1)
+        <div class="mb-6 rounded-xl border bg-gray-50 p-4">
+            <h3 class="text-sm font-semibold text-gray-800 mb-2">Report Components</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                @foreach($componentExams as $componentExam)
+                <div class="rounded-lg border bg-white px-3 py-2">
+                    <div class="font-medium text-gray-900">{{ $componentExam->name }}</div>
+                    <div class="text-xs text-gray-500">{{ $componentExam->term->name ?? '-' }} / {{ $componentExam->academicYear->name ?? '-' }}</div>
+                    <div class="text-xs text-gray-600 mt-1">Weight: {{ rtrim(rtrim(number_format((float) ($componentExam->pivot->weight ?? 0), 2, '.', ''), '0'), '.') }}</div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Grades Table --}}
         {{-- Grades Table - Format varies by assessment type --}}
         @if($formatted['format'] === 'primary')
@@ -70,15 +85,16 @@
         </table>
 
         @elseif($formatted['format'] === 'o-level')
-        {{-- O-LEVEL FORMAT: Marks → Grades (D1-F9) + Best-8 Aggregate --}}
+        {{-- CHANGED: O-LEVEL FORMAT (new curriculum): competency level + points --}}
         <table class="min-w-full divide-y divide-gray-200 mb-6">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marks</th>
+                    {{-- CHANGED: old marks column intentionally removed for points-first reporting. --}}
+                    {{-- <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marks</th> --}}
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Value</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -86,7 +102,6 @@
                 <tr>
                     <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
                     <td class="px-4 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
-                    <td class="px-4 py-2 text-sm text-center text-gray-900 font-medium">{{ $subject['marks'] }}/100</td>
                     <td class="px-4 py-2 text-sm text-center">
                         <span class="px-3 py-1 rounded-full text-xs font-bold {{ $subject['color'] }}">
                             {{ $subject['grade'] }}
@@ -98,13 +113,13 @@
             </tbody>
             <tfoot class="bg-gray-50">
                 <tr>
-                    <td colspan="3" class="px-4 py-2 text-sm font-bold text-gray-900">Best-8 Aggregate</td>
+                    <td colspan="2" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Competency</td>
                     <td class="px-4 py-2 text-sm text-center font-bold">
                         <span class="px-3 py-1 rounded-full text-xs font-bold {{ 'bg-blue-100 text-blue-800' }}">
                             {{ $formatted['overall_grade'] }}
                         </span>
                     </td>
-                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['aggregate_points'] }} pts</td>
+                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['total_points'] }} pts</td>
                 </tr>
             </tfoot>
         </table>
@@ -168,15 +183,15 @@
             </div>
             @elseif($formatted['format'] === 'o-level')
             <div class="rounded-lg border p-3 text-center">
-                <div class="text-xs text-gray-500 uppercase">Average</div>
-                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['average'] }}%</div>
+                <div class="text-xs text-gray-500 uppercase">Total Points</div>
+                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['total_points'] }} pts</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
-                <div class="text-xs text-gray-500 uppercase">Aggregate</div>
-                <div class="text-lg font-bold text-gray-900">{{ $formatted['aggregate_points'] }} pts</div>
+                <div class="text-xs text-gray-500 uppercase">Average Points</div>
+                <div class="text-lg font-bold text-gray-900">{{ $formatted['average_points'] }}</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
-                <div class="text-xs text-gray-500 uppercase">Overall Grade</div>
+                <div class="text-xs text-gray-500 uppercase">Overall Competency</div>
                 <div class="text-lg font-bold text-gray-900">{{ $formatted['overall_grade'] }}</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
@@ -225,6 +240,7 @@
 
     {{-- CHANGED: Uganda fit - replaced static signature block with editable remarks form --}}
     {{-- Remarks editor --}}
+    @can('report_cards.edit')
     <form method="POST" action="{{ route('report-cards.update', ['student' => $student->id, 'exam' => $exam->id]) }}" class="border-t pt-6 mb-8 print:hidden">
         @csrf
         @method('PUT')
@@ -257,6 +273,7 @@
             <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background: var(--primary-color);">Save Remarks</button>
         </div>
     </form>
+    @endcan
 
     {{-- Signature Area --}}
     <div class="grid grid-cols-3 gap-8 mt-12 pt-6 border-t text-sm text-center">

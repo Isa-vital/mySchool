@@ -21,7 +21,9 @@
                     @foreach($exams as $exam)
                     <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>
                         {{ $exam->name }}
-                        @if(!$exam->is_published)
+                        @if($exam->is_report_card)
+                        (Report)
+                        @elseif(!$exam->is_published)
                         (Draft)
                         @endif
                     </option>

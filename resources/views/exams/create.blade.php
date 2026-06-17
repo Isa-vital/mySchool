@@ -6,6 +6,10 @@
         </div>
     </x-slot>
 
+    @php
+    $componentRows = old('report_components', array_fill(0, 4, ['exam_id' => '', 'weight' => '']));
+    @endphp
+
     <form method="POST" action="{{ route('exams.store') }}">
         @csrf
         <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
@@ -50,11 +54,43 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Max Marks / Points</label>
                     <input type="number" name="max_points" min="1" max="500" value="{{ old('max_points', 100) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Grading Profile</label>
+                    <select name="grading_scale_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="">Use format default</option>
+                        @foreach($gradingScales as $gradingScale)
+                        <option value="{{ $gradingScale->id }}" {{ (string) old('grading_scale_id') === (string) $gradingScale->id ? 'selected' : '' }}>{{ $gradingScale->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Optional. Overrides the default grading rules for this exam.</p>
+                </div>
+                <div class="flex items-center pt-6">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" name="is_report_card" id="is_report_card" value="1" {{ old('is_report_card') ? 'checked' : '' }} class="rounded text-blue-600">
+                        <span class="text-sm font-medium text-gray-700">Use as report card exam</span>
+                    </label>
+                </div>
                 <div class="md:col-span-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea name="description" rows="2" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">{{ old('description') }}</textarea>
                 </div>
             </div>
+        </div>
+
+        <div id="report-components-panel" class="bg-white rounded-xl shadow-sm border p-6 mb-6 {{ old('is_report_card') ? '' : 'hidden' }}">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-800">Report Card Composition</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Add the exam sets that make up this report card and assign each a weight. Any names and any number of sets work — the system normalizes marks automatically.</p>
+                </div>
+                <button type="button" id="add-component-btn" class="px-3 py-1.5 text-xs font-medium text-white rounded-lg shrink-0" style="background: var(--primary-color);">+ Add exam set</button>
+            </div>
+
+            <div id="components-list" class="space-y-2">
+                {{-- rows injected by JS --}}
+            </div>
+
+            <p class="text-xs text-gray-400 mt-3">Weights can be anything — 20/30/50, 1/2/3, percentages, or equal values. The total is normalized to 100 automatically.</p>
         </div>
 
         {{-- Assign to Classes --}}
@@ -83,6 +119,8 @@
         const yearSelect = document.getElementById('academic_year_id');
         const termSelect = document.getElementById('term_id');
         const oldTermId = '{{ old("term_id") }}';
+        const reportCardCheckbox = document.getElementById('is_report_card');
+        const reportComponentsPanel = document.getElementById('report-components-panel');
 
         function populateTerms() {
             const yearId = yearSelect.value;
@@ -98,7 +136,13 @@
             }
         }
 
+        function toggleReportComponents() {
+            reportComponentsPanel.classList.toggle('hidden', !reportCardCheckbox.checked);
+        }
+
         yearSelect.addEventListener('change', populateTerms);
+        reportCardCheckbox.addEventListener('change', toggleReportComponents);
         if (yearSelect.value) populateTerms();
+        toggleReportComponents();
     </script>
 </x-app-layout>

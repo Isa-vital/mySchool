@@ -150,7 +150,10 @@ class TeacherPortalController extends Controller
     {
         $staff = $this->getStaff();
         $currentYear = AcademicYear::current();
-        $exams = Exam::with(['academicYear', 'term'])->orderBy('created_at', 'desc')->get();
+        $exams = Exam::with(['academicYear', 'term'])
+            ->where('is_report_card', false)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $myClassIds = TimetableSlot::where('staff_id', $staff->id)
             ->when($currentYear, fn($q) => $q->where('academic_year_id', $currentYear->id))
@@ -165,6 +168,8 @@ class TeacherPortalController extends Controller
 
     public function enterGrades(Request $request, Exam $exam)
     {
+        abort_if($exam->is_report_card, 422, 'Report-card exams are computed from component exams and do not accept direct grade entry.');
+
         $staff = $this->getStaff();
         $currentYear = AcademicYear::current();
 
@@ -182,11 +187,8 @@ class TeacherPortalController extends Controller
         $subjects = collect();
         $subject = null;
 
-        // CHANGED: provide grading ranges + marks for live grade preview/validation.
-        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
-        $gradingRanges = $gradingScale
-            ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get()
-            : collect();
+        // CHANGED: use the exam's grading profile for live preview and validation.
+        $gradingRanges = collect(\App\Services\AssessmentGradingService::previewRangesForExam($exam));
         $fullMarks = 100;
         $passMarks = 40;
 
@@ -225,28 +227,22 @@ class TeacherPortalController extends Controller
 
     public function saveGrades(Request $request, Exam $exam)
     {
+        abort_if($exam->is_report_card, 422, 'Report-card exams are computed from component exams and do not accept direct grade entry.');
+
         $validated = $request->validate([
             'class_id' => 'required|exists:school_classes,id',
             'subject_id' => 'required|exists:subjects,id',
             'grades' => 'required|array|min:1',
             'grades.*.student_id' => 'required|exists:students,id',
-            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:100',
+            'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:500',
             'grades.*.remarks' => 'nullable|string|max:500',
         ]);
-
-        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
-        $ranges = $gradingScale ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get() : collect();
 
         foreach ($request->grades as $gradeData) {
             if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {
                 $marks = (float) $gradeData['marks_obtained'];
-                $gradeLetter = null;
-                foreach ($ranges as $range) {
-                    if ($marks >= $range->min_mark && $marks <= $range->max_mark) {
-                        $gradeLetter = $range->grade;
-                        break;
-                    }
-                }
+                $resolved = \App\Services\AssessmentGradingService::resolveForExam($exam, $marks);
+                $gradeLetter = $resolved['grade'];
 
                 Grade::updateOrCreate(
                     [
@@ -258,6 +254,7 @@ class TeacherPortalController extends Controller
                         'school_class_id' => $request->class_id,
                         'marks_obtained' => $marks,
                         'grade_letter' => $gradeLetter,
+                        'achievement_level' => $resolved['description'],
                         'remarks' => $gradeData['remarks'] ?? null,
                         'graded_by' => auth()->id(),
                     ]

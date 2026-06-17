@@ -8,6 +8,8 @@ use App\Models\Grade;
 use App\Models\ReportCard;
 use App\Models\SchoolClass;
 use Spatie\Permission\Models\Permission;
+use App\Services\AssessmentGradingService;
+use App\Services\ReportCardCompositionService;
 use App\Services\UgandaGrading;
 use App\Services\ReportCardFormatter;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,7 +35,7 @@ class ReportCardController extends Controller
         if (!$user?->hasRole('Super Admin') && !$canEditReportCards) {
             $examsQuery->where('is_published', true);
         }
-        
+
         $exams = $examsQuery->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
 
@@ -59,6 +61,12 @@ class ReportCardController extends Controller
 
     public function update(Request $request, Student $student, Exam $exam)
     {
+        // CHANGED: defense-in-depth authorization in addition to route middleware.
+        $user = $request->user();
+        $hasPermissionDefinition = Permission::where('name', 'report_cards.edit')->where('guard_name', 'web')->exists();
+        $canEdit = $user && ($user->hasRole('Super Admin') || ($hasPermissionDefinition && $user->hasPermissionTo('report_cards.edit')));
+        abort_unless($canEdit, 403);
+
         $validated = $request->validate([
             'conduct' => 'nullable|string|max:100',
             'class_teacher_comment' => 'nullable|string|max:1000',
@@ -91,16 +99,13 @@ class ReportCardController extends Controller
      */
     protected function buildReportData(Student $student, Exam $exam): array
     {
-        $grades = Grade::with('subject')
-            ->where('student_id', $student->id)
-            ->where('exam_id', $exam->id)
-            ->get();
-
         $enrollment = $student->enrollments()->where('academic_year_id', $exam->academic_year_id)->first();
         $schoolClass = $enrollment?->schoolClass;
 
         $figures = $this->computeFigures($student, $exam);
+        $grades = $figures['grades'];
         $reportCard = ReportCard::firstOrNew(['student_id' => $student->id, 'exam_id' => $exam->id]);
+        $componentExams = ReportCardCompositionService::componentExams($exam);
 
         // Format report card based on assessment format
         $formatted = ReportCardFormatter::format(
@@ -119,6 +124,7 @@ class ReportCardController extends Controller
             'enrollment' => $enrollment,
             'schoolClass' => $schoolClass,
             'reportCard' => $reportCard,
+            'componentExams' => $componentExams,
             'totalMarks' => $figures['total_marks'],
             'average' => $figures['average'],
             'position' => $figures['position'],
@@ -138,23 +144,18 @@ class ReportCardController extends Controller
         $enrollment = $student->enrollments()->where('academic_year_id', $exam->academic_year_id)->first();
         $schoolClass = $enrollment?->schoolClass;
 
-        $grades = Grade::where('student_id', $student->id)->where('exam_id', $exam->id)->get();
+        $composed = ReportCardCompositionService::buildStudentFigures($student, $exam, $schoolClass?->id);
+        $grades = $composed['grades'];
         $marks = $grades->pluck('marks_obtained')->filter(fn($m) => $m !== null)->map(fn($m) => (float) $m)->all();
 
-        $total = array_sum($marks);
-        $count = count($marks);
-        $average = $count > 0 ? round($total / $count, 2) : 0;
+        $total = $composed['total_marks'];
+        $average = $composed['average'];
 
         // Class position: rank every student in the same class/exam by total marks.
         $position = null;
         $classSize = null;
         if ($schoolClass) {
-            $classTotals = Grade::query()
-                ->where('exam_id', $exam->id)
-                ->where('school_class_id', $schoolClass->id)
-                ->selectRaw('student_id, SUM(marks_obtained) as total')
-                ->groupBy('student_id')
-                ->pluck('total', 'student_id')
+            $classTotals = ReportCardCompositionService::classTotals($exam, $schoolClass->id, $exam->academic_year_id)
                 ->sortDesc()
                 ->values();
 
@@ -167,6 +168,7 @@ class ReportCardController extends Controller
         $national = UgandaGrading::nationalResult($schoolClass?->nationalExam(), $marks);
 
         return [
+            'grades' => $grades,
             'total_marks' => $total,
             'average' => $average,
             'position' => $position,

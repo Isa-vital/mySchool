@@ -182,7 +182,9 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // Report Cards
     Route::get('report-cards', [ReportCardController::class, 'index'])->name('report-cards.index')->middleware('permission:report_cards.view');
     Route::get('report-cards/{student}/{exam}', [ReportCardController::class, 'show'])->name('report-cards.show')->middleware('permission:report_cards.view');
-    Route::put('report-cards/{student}/{exam}', [ReportCardController::class, 'update'])->name('report-cards.update')->middleware('permission:report_cards.view');
+    // CHANGED: update endpoint now requires edit permission (not just view).
+    // Route::put('report-cards/{student}/{exam}', [ReportCardController::class, 'update'])->name('report-cards.update')->middleware('permission:report_cards.view');
+    Route::put('report-cards/{student}/{exam}', [ReportCardController::class, 'update'])->name('report-cards.update')->middleware('permission:report_cards.edit');
     Route::get('report-cards/{student}/{exam}/pdf', [ReportCardController::class, 'pdf'])->name('report-cards.pdf')->middleware('permission:report_cards.generate');
 
     // Fee Types

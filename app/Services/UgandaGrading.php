@@ -14,6 +14,82 @@ namespace App\Services;
 class UgandaGrading
 {
     /**
+     * O-level (new lower secondary curriculum) competency level from score.
+     * Levels: A, B, C, D, E.
+     */
+    public static function oLevelCompetencyLevel(float $marks): string
+    {
+        // CHANGED: new curriculum competency levels.
+        return match (true) {
+            $marks >= 80 => 'A',
+            $marks >= 65 => 'B',
+            $marks >= 50 => 'C',
+            $marks >= 35 => 'D',
+            default => 'E',
+        };
+    }
+
+    /**
+     * O-level curriculum points mapped from competency levels.
+     * Lower points indicate better performance.
+     */
+    public static function oLevelCompetencyPoints(string $level): int
+    {
+        $defaultMap = ['A' => 1, 'B' => 2, 'C' => 3, 'D' => 4, 'E' => 5];
+
+        // CHANGED: allow schools to align to official circular updates without code changes.
+        $configured = setting('olevel_competency_points', null);
+        $map = $defaultMap;
+        if (is_string($configured)) {
+            $decoded = json_decode($configured, true);
+            if (is_array($decoded)) {
+                foreach ($defaultMap as $grade => $point) {
+                    if (isset($decoded[$grade]) && is_numeric($decoded[$grade])) {
+                        $map[$grade] = (int) $decoded[$grade];
+                    }
+                }
+            }
+        }
+
+        $grade = strtoupper(trim($level));
+        return $map[$grade] ?? $map['E'];
+    }
+
+    /**
+     * O-level subject result in points-based competency format.
+     * Returns level, points and a brief descriptor.
+     */
+    public static function oLevelSubjectResult(float $marks): array
+    {
+        $level = self::oLevelCompetencyLevel($marks);
+        $points = self::oLevelCompetencyPoints($level);
+
+        $descriptor = match ($level) {
+            'A' => 'Excellent Competency',
+            'B' => 'Very Good Competency',
+            'C' => 'Satisfactory Competency',
+            'D' => 'Basic Competency',
+            default => 'Developing Competency',
+        };
+
+        return ['level' => $level, 'points' => $points, 'description' => $descriptor];
+    }
+
+    /**
+     * O-level overall competency level from average points.
+     */
+    public static function oLevelOverallLevel(float $avgPoints): string
+    {
+        return match (true) {
+            $avgPoints <= 1.5 => 'A',
+            $avgPoints <= 2.5 => 'B',
+            $avgPoints <= 3.5 => 'C',
+            $avgPoints <= 4.5 => 'D',
+            default => 'E',
+        };
+    }
+
+    /**
      * Map a percentage mark to a UNEB subject grade (D1..F9) and its numeric value.
      */
     public static function subjectGrade(float $marks): array
@@ -68,6 +144,7 @@ class UgandaGrading
      */
     public static function uceAggregate(array $gradeValues): int
     {
+        // CHANGED: legacy UCE aggregate retained for backward compatibility.
         sort($gradeValues);
         return (int) array_sum(array_slice($gradeValues, 0, 8));
     }
@@ -77,6 +154,7 @@ class UgandaGrading
      */
     public static function uceDivision(int $aggregate): string
     {
+        // CHANGED: legacy UCE divisions retained for backward compatibility.
         return match (true) {
             $aggregate >= 8 && $aggregate <= 32 => 'Division 1',
             $aggregate >= 33 && $aggregate <= 45 => 'Division 2',

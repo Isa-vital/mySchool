@@ -9,13 +9,17 @@ use App\Models\Subject;
 use App\Models\Enrollment;
 use App\Models\AcademicYear;
 use App\Http\Requests\SaveGradesRequest;
+use App\Services\AssessmentGradingService;
 use Illuminate\Http\Request;
 
 class GradeController extends Controller
 {
     public function index(Request $request)
     {
-        $exams = Exam::with(['academicYear', 'term'])->orderBy('created_at', 'desc')->get();
+        $exams = Exam::with(['academicYear', 'term'])
+            ->where('is_report_card', false)
+            ->orderBy('created_at', 'desc')
+            ->get();
         $classes = SchoolClass::active()->orderBy('level')->get();
         $subjects = Subject::active()->orderBy('name')->get();
 
@@ -33,6 +37,8 @@ class GradeController extends Controller
 
     public function enter(Request $request, Exam $exam)
     {
+        abort_if($exam->is_report_card, 422, 'Report-card exams are computed from component exams and do not accept direct grade entry.');
+
         $classes = SchoolClass::active()->with('subjects')->orderBy('level')->get();
         $selectedClassId = $request->get('class_id');
         $selectedSubjectId = $request->get('subject_id');
@@ -44,10 +50,7 @@ class GradeController extends Controller
 
         // CHANGED: provide grading ranges + this subject's marks so the entry
         // form can show a live grade preview and validate against full marks.
-        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
-        $gradingRanges = $gradingScale
-            ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get()
-            : collect();
+        $gradingRanges = collect(AssessmentGradingService::previewRangesForExam($exam));
         $fullMarks = 100;
         $passMarks = 40;
 
@@ -87,27 +90,16 @@ class GradeController extends Controller
 
     public function save(SaveGradesRequest $request, Exam $exam)
     {
-        $validated = $request->validated();
+        abort_if($exam->is_report_card, 422, 'Report-card exams are computed from component exams and do not accept direct grade entry.');
 
-        // Load grading scale for grade letter calculation
-        $gradingScale = \App\Models\GradingScale::where('is_default', true)->first();
-        $ranges = $gradingScale ? $gradingScale->ranges()->orderBy('min_mark', 'desc')->get() : collect();
+        $validated = $request->validated();
 
         foreach ($request->grades as $gradeData) {
             if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {
                 $marks = (float) $gradeData['marks_obtained'];
-
-                // Auto-calculate grade letter from grading scale
-                $gradeLetter = null;
-                foreach ($ranges as $range) {
-                    if ($marks >= $range->min_mark && $marks <= $range->max_mark) {
-                        $gradeLetter = $range->grade;
-                        break;
-                    }
-                }
-
-                // Competency achievement level (new lower-secondary curriculum)
-                $achievementLevel = \App\Services\UgandaGrading::achievementLevel($marks);
+                $resolved = AssessmentGradingService::resolveForExam($exam, $marks);
+                $gradeLetter = $resolved['grade'];
+                $achievementLevel = $resolved['description'];
 
                 Grade::updateOrCreate(
                     [

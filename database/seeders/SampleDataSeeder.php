@@ -805,6 +805,3 @@ class SampleDataSeeder extends Seeder
         $this->command->info("   Guardians: " . count($guardianRecords));
     }
 }
-
-
-

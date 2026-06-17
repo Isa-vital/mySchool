@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Exam;
-use App\Models\Grade;
 use Illuminate\Support\Collection;
 
 class ReportCardFormatter
@@ -39,19 +38,21 @@ class ReportCardFormatter
         ?int $classSize,
         Exam $exam
     ): array {
-        $gradedSubjects = $grades->map(function ($grade) {
+        $ranges = AssessmentGradingService::rangesForExam($exam);
+
+        $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;
-            $level = self::getPrimaryAchievementLevel($marks);
+            $resolved = AssessmentGradingService::resolve($marks, $ranges);
 
             return [
                 'subject' => $grade->subject->name,
                 'marks' => $marks,
-                'grade' => $level,
-                'color' => self::getAchievementLevelColor($level),
+                'grade' => $resolved['grade'],
+                'color' => self::getAchievementLevelColor($resolved['grade']),
             ];
         });
 
-        $overallLevel = self::getPrimaryAchievementLevel($average);
+        $overallLevel = AssessmentGradingService::resolve($average, $ranges)['grade'];
 
         return [
             'format' => 'primary',
@@ -71,9 +72,8 @@ class ReportCardFormatter
     }
 
     /**
-     * O-LEVEL FORMAT: Marks → Grade (A-E) + Subject Ranking
-     * Each subject shows: Marks (0-100) → Grade Letter (A/B/C/D/E)
-     * Total: Aggregate score calculation
+     * O-LEVEL FORMAT (new curriculum): Competency level + points.
+     * Each subject shows: Level (A-E) + Points (1-5, lower is better)
      */
     private static function formatOLevel(
         Collection $grades,
@@ -83,33 +83,37 @@ class ReportCardFormatter
         ?int $classSize,
         Exam $exam
     ): array {
-        // CHANGED: switched from A-E custom scale to Uganda-style O-level subject grades
-        // (D1-F9) and best-8 aggregate calculation.
-        $gradedSubjects = $grades->map(function ($grade) {
+        $ranges = AssessmentGradingService::rangesForExam($exam);
+
+        $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;
-            $subjectGrade = UgandaGrading::subjectGrade((float) $marks);
+            $subjectResult = AssessmentGradingService::resolve($marks, $ranges);
 
             return [
                 'subject' => $grade->subject->name,
-                'marks' => $marks,
-                'grade' => $subjectGrade['grade'],
-                'points' => $subjectGrade['value'],
-                'descriptor' => $subjectGrade['description'],
-                'color' => self::getOLevelGradeColor($subjectGrade['grade']),
+                'raw_marks' => $marks,
+                'grade' => $subjectResult['grade'],
+                'points' => $subjectResult['points'],
+                'descriptor' => $subjectResult['description'],
+                'color' => self::getOLevelGradeColor($subjectResult['grade']),
             ];
         });
 
-        // CHANGED: O-level aggregate is based on best 8 subjects, lower is better.
-        $aggregatePoints = UgandaGrading::uceAggregate($gradedSubjects->pluck('points')->all());
-        $overallGrade = UgandaGrading::uceDivision($aggregatePoints);
+        $totalPoints = (int) $gradedSubjects->sum('points');
+        $subjectCount = $gradedSubjects->count();
+        $averagePoints = $subjectCount > 0 ? round($totalPoints / $subjectCount, 2) : 0;
+        $overallGrade = AssessmentGradingService::resolve($average, $ranges)['grade'];
 
         return [
             'format' => 'o-level',
-            'format_label' => 'O-Level School Report',
+            'format_label' => 'O-Level School Report (Competency-Based)',
             'subjects' => $gradedSubjects,
+            // CHANGED: keep legacy values for compatibility, but UI should prefer points fields.
             'total_marks' => $totalMarks,
             'average' => round($average, 2),
-            'aggregate_points' => $aggregatePoints,
+            'total_points' => $totalPoints,
+            'average_points' => $averagePoints,
+            'subject_count' => $subjectCount,
             'overall_grade' => $overallGrade,
             'position' => $position,
             'class_size' => $classSize,
@@ -135,18 +139,17 @@ class ReportCardFormatter
         Exam $exam
     ): array {
         $maxPoints = (int) setting('alevel_points_max', 20);
+        $ranges = AssessmentGradingService::rangesForExam($exam);
 
-        // CHANGED: switched from linear 0-20 per-subject scaling to A-level grade points
-        // and capped total out of configured maximum (default 20) for school reporting.
-        $gradedSubjects = $grades->map(function ($grade) {
+        $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;
-            $uace = UgandaGrading::uaceGrade((float) $marks);
+            $uace = AssessmentGradingService::resolve($marks, $ranges);
 
             return [
                 'subject' => $grade->subject->name,
                 'marks' => $marks,
                 'grade' => $uace['grade'],
-                'points' => $uace['points'],
+                'points' => (int) ($uace['points'] ?? 0),
             ];
         });
 
@@ -204,15 +207,15 @@ class ReportCardFormatter
     }
 
     /**
-     * Get color for O-level grade badge (D1-F9).
+     * Get color for O-level competency grade badge (A-E).
      */
     private static function getOLevelGradeColor(string $grade): string
     {
         return match ($grade) {
-            'D1', 'D2' => 'bg-green-100 text-green-800',
-            'C3', 'C4', 'C5', 'C6' => 'bg-blue-100 text-blue-800',
-            'P7', 'P8' => 'bg-yellow-100 text-yellow-800',
-            'F9' => 'bg-red-100 text-red-800',
+            'A', 'B' => 'bg-green-100 text-green-800',
+            'C' => 'bg-blue-100 text-blue-800',
+            'D' => 'bg-yellow-100 text-yellow-800',
+            'E' => 'bg-red-100 text-red-800',
             default => 'bg-gray-100 text-gray-800',
         };
     }

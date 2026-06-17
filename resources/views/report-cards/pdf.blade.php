@@ -201,9 +201,10 @@
         <thead>
             <tr>
                 <th style="width:6%;">#</th>
-                <th style="width:49%;">Subject</th>
-                <th style="width:15%;">Marks</th>
-                <th style="width:15%;">Grade</th>
+                <th style="width:59%;">Subject</th>
+                {{-- CHANGED: remove marks column for points-first O-level reporting. --}}
+                {{-- <th style="width:15%;">Marks</th> --}}
+                <th style="width:20%;">Grade</th>
                 <th style="width:15%;">Value</th>
             </tr>
         </thead>
@@ -212,7 +213,6 @@
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $subject['subject'] }}</td>
-                <td>{{ $subject['marks'] }} / 100</td>
                 <td><strong>{{ $subject['grade'] }}</strong></td>
                 <td>{{ $subject['points'] }}</td>
             </tr>
@@ -250,9 +250,9 @@
         <p><strong>Overall Performance:</strong> {{ $formatted['overall_grade'] }}</p>
         <p><strong>Subjects Taken:</strong> {{ count($formatted['subjects'] ?? []) }}</p>
         @elseif(($formatted['format'] ?? 'primary') === 'o-level')
-        <p><strong>Average:</strong> {{ $formatted['average'] }}%</p>
-        <p><strong>Best-8 Aggregate:</strong> {{ $formatted['aggregate_points'] }}</p>
-        <p><strong>Division:</strong> {{ $formatted['overall_grade'] }}</p>
+        <p><strong>Total Points:</strong> {{ $formatted['total_points'] }}</p>
+        <p><strong>Average Points:</strong> {{ $formatted['average_points'] }}</p>
+        <p><strong>Overall Competency:</strong> {{ $formatted['overall_grade'] }}</p>
         @else
         <p><strong>Total Points:</strong> {{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}</p>
         <p><strong>Raw Subject Points:</strong> {{ $formatted['raw_points'] }}</p>
