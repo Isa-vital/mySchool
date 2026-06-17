@@ -117,6 +117,15 @@ class SampleDataSeeder extends Seeder
                     return round($min + lcg_value() * ($max - $min), $decimals);
                 }
 
+                public function numberBetween(int $min = 0, int $max = 2147483647): ?int
+                {
+                    if ($this->shouldReturnNull()) {
+                        return null;
+                    }
+
+                    return random_int($min, $max);
+                }
+
                 private function shouldReturnNull(): bool
                 {
                     return $this->optionalProbability !== null && lcg_value() > $this->optionalProbability;
