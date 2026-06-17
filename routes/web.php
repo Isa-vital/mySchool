@@ -178,6 +178,9 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::get('grades', [GradeController::class, 'index'])->name('grades.index')->middleware('permission:grades.view');
     Route::get('grades/{exam}/enter', [GradeController::class, 'enter'])->name('grades.enter')->middleware('permission:grades.create');
     Route::post('grades/{exam}/save', [GradeController::class, 'save'])->name('grades.save')->middleware('permission:grades.create');
+    // CHANGED: grid entry — one view for all component exams (coursework + finals style)
+    Route::get('grades/{report_exam}/enter-grid', [GradeController::class, 'enterGrid'])->name('grades.enter-grid')->middleware('permission:grades.create');
+    Route::post('grades/{report_exam}/save-grid', [GradeController::class, 'saveGrid'])->name('grades.save-grid')->middleware('permission:grades.create');
 
     // Report Cards
     Route::get('report-cards', [ReportCardController::class, 'index'])->name('report-cards.index')->middleware('permission:report_cards.view');
