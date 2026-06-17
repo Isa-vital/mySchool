@@ -76,6 +76,17 @@
             </div>
 
             <div class="overflow-x-auto">
+                @php
+                    // CHANGED: precompute exams payload for Alpine to avoid Blade parser issues
+                    // with nested inline arrays/functions inside HTML attributes.
+                    $gridExamsPayload = $componentExams->map(function ($e) use ($fullMarks) {
+                        return [
+                            'id' => (int) $e->id,
+                            'weight' => (float) ($e->pivot->weight ?? 0),
+                            'full' => (float) ($fullMarks[$e->id] ?? 100),
+                        ];
+                    })->values();
+                @endphp
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50">
                         <tr>
@@ -102,10 +113,7 @@
                                 $rowMarks[$compExam->id] = $gridGrades[$student->id][$compExam->id] ?? null;
                             }
                         @endphp
-                        <tr class="hover:bg-gray-50" x-data="gradeRow(
-                            {{ $weightTotal }},
-                            [{{ $componentExams->map(fn($e) => json_encode(['id' => $e->id, 'weight' => (float)($e->pivot->weight ?? 0), 'full' => (float)($fullMarks[$e->id] ?? 100)]))->join(',') }}]
-                        )" @input="onInput(); $dispatch('row-updated')">
+                        <tr class="hover:bg-gray-50" x-data='gradeRow({{ $weightTotal }}, @json($gridExamsPayload))' @input="onInput(); $dispatch('row-updated')">
                             <td class="px-4 py-2 text-gray-400 sticky left-0 bg-white">{{ $i + 1 }}</td>
                             <td class="px-4 py-2 sticky left-8 bg-white">
                                 <div class="font-medium text-gray-900">{{ $student->full_name }}</div>
