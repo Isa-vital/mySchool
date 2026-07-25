@@ -13,6 +13,8 @@ class SettingController extends Controller
         'primary_achievement_levels',
         'olevel_competency_scale',
         'alevel_grade_scale',
+        // CHANGED (A5): PLE stanine bands are now configurable too.
+        'ple_stanine_scale',
     ];
 
     public function index()

@@ -2,14 +2,20 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Grade extends Model
 {
+    // CHANGED (A2): every mark create/update/delete is now written to activity_logs
+    // (who/when/old/new) so post-entry changes have an audit trail.
+    use LogsActivity;
     protected $fillable = [
         'exam_id',
         'student_id',
         'subject_id',
+        // CHANGED (A6): NULL = whole-subject score; set = score for one weighted component.
+        'subject_component_id',
         'school_class_id',
         'marks_obtained',
         'ca_marks',
@@ -37,6 +43,12 @@ class Grade extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    // CHANGED (A6)
+    public function subjectComponent()
+    {
+        return $this->belongsTo(SubjectComponent::class);
     }
 
     public function schoolClass()

@@ -46,10 +46,13 @@ class ReportCardController extends Controller
         $classes = SchoolClass::active()->orderBy('level')->get();
         $selectedExam = null;
 
+        // CHANGED (UX): default to the current term so users only pick the class.
+        $selectedTermId = $request->get('term_id', Term::current()?->id);
+
         $students = collect();
-        if ($request->filled('class_id') && $request->filled('term_id')) {
+        if ($request->filled('class_id') && $selectedTermId) {
             $examForTermQuery = Exam::query()
-                ->where('term_id', $request->term_id)
+                ->where('term_id', $selectedTermId)
                 ->orderByDesc('is_report_card')
                 ->orderByDesc('is_published')
                 ->orderByDesc('created_at');
@@ -75,7 +78,7 @@ class ReportCardController extends Controller
             }
         }
 
-        return view('report-cards.index', compact('exams', 'terms', 'classes', 'students', 'selectedExam'));
+        return view('report-cards.index', compact('exams', 'terms', 'classes', 'students', 'selectedExam', 'selectedTermId'));
     }
 
     public function show(Student $student, Exam $exam)
@@ -118,87 +121,144 @@ class ReportCardController extends Controller
     }
 
     /**
+     * CHANGED (UX): bulk comments editor — edit conduct/comments for a whole class
+     * on one page instead of opening every student's report card individually.
+     */
+    public function bulkComments(Request $request, Exam $exam)
+    {
+        $request->validate(['class_id' => 'required|integer|exists:school_classes,id']);
+
+        $schoolClass = SchoolClass::findOrFail($request->class_id);
+        $students = $this->classStudents($exam, (int) $request->class_id);
+        $reportCards = ReportCard::where('exam_id', $exam->id)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get()
+            ->keyBy('student_id');
+
+        // Suggest the most common existing next-term date as the shared default.
+        $nextTermBegins = $reportCards->pluck('next_term_begins')->filter()->countBy(fn($d) => $d->format('Y-m-d'))->sortDesc()->keys()->first();
+
+        return view('report-cards.bulk-comments', compact('exam', 'schoolClass', 'students', 'reportCards', 'nextTermBegins'));
+    }
+
+    /**
+     * CHANGED (UX): save bulk comments. Only rows with any content are written.
+     */
+    public function saveBulkComments(Request $request, Exam $exam)
+    {
+        $validated = $request->validate([
+            'class_id' => 'required|integer|exists:school_classes,id',
+            'next_term_begins' => 'nullable|date',
+            'rows' => 'array',
+            'rows.*.conduct' => 'nullable|string|max:100',
+            'rows.*.class_teacher_comment' => 'nullable|string|max:1000',
+            'rows.*.head_teacher_comment' => 'nullable|string|max:1000',
+        ]);
+
+        $students = $this->classStudents($exam, (int) $validated['class_id'])->keyBy('id');
+        $saved = 0;
+
+        foreach (($validated['rows'] ?? []) as $studentId => $row) {
+            $student = $students->get((int) $studentId);
+            if (! $student) {
+                continue; // ignore rows for students not in this class/exam
+            }
+
+            $payload = array_filter([
+                'conduct' => $row['conduct'] ?? null,
+                'class_teacher_comment' => $row['class_teacher_comment'] ?? null,
+                'head_teacher_comment' => $row['head_teacher_comment'] ?? null,
+                'next_term_begins' => $validated['next_term_begins'] ?? null,
+            ], fn($v) => $v !== null && $v !== '');
+
+            $existing = ReportCard::where('student_id', $student->id)->where('exam_id', $exam->id)->first();
+            if ($payload === [] && ! $existing) {
+                continue; // nothing to store for this student
+            }
+
+            // Recompute cached figures so the stored card stays consistent (same as single update).
+            $computed = $this->computeFigures($student, $exam);
+
+            ReportCard::updateOrCreate(
+                ['student_id' => $student->id, 'exam_id' => $exam->id],
+                array_merge($payload, $computed)
+            );
+            $saved++;
+        }
+
+        return redirect()
+            ->route('report-cards.bulk-comments', ['exam' => $exam->id, 'class_id' => $validated['class_id']])
+            ->with('success', "Comments saved for {$saved} student(s).");
+    }
+
+    /**
+     * CHANGED (A3): bulk PDF is now a QUEUED job (GenerateBulkReportCardsJob) — the old
+     * synchronous loop recomputed class totals per student (O(N²)) and risked request
+     * timeouts on classes of 40+. The UI polls bulkPdfStatus() for progress.
+     */
+    public function bulkPdf(Request $request, Exam $exam)
+    {
+        $request->validate(['class_id' => 'required|integer|exists:school_classes,id']);
+
+        $schoolClass = SchoolClass::findOrFail($request->class_id);
+        $students = $this->classStudents($exam, (int) $request->class_id);
+        abort_if($students->isEmpty(), 404, 'No enrolled students found for this class.');
+
+        $progressKey = \Illuminate\Support\Str::random(16);
+
+        \App\Jobs\GenerateBulkReportCardsJob::dispatch($exam->id, (int) $request->class_id, (int) $request->user()->id, $progressKey);
+
+        return response()->json([
+            'success' => true,
+            'key' => $progressKey,
+            'total' => $students->count(),
+            'status_url' => route('report-cards.bulk-pdf.status', ['exam' => $exam->id, 'key' => $progressKey]),
+        ]);
+    }
+
+    /**
+     * CHANGED (A3): progress endpoint polled by the report-cards page.
+     */
+    public function bulkPdfStatus(Request $request, Exam $exam)
+    {
+        $request->validate(['key' => 'required|string']);
+
+        $state = \Illuminate\Support\Facades\Cache::get(
+            \App\Jobs\GenerateBulkReportCardsJob::progressCacheKey($request->key)
+        );
+
+        return response()->json($state ?? ['status' => 'pending', 'done' => 0, 'total' => null, 'url' => null]);
+    }
+
+    /**
+     * Active students enrolled in a class for the exam's academic year.
+     */
+    protected function classStudents(Exam $exam, int $classId)
+    {
+        return Student::whereHas('enrollments', function ($q) use ($classId, $exam) {
+            $q->where('school_class_id', $classId)
+                ->where('academic_year_id', $exam->academic_year_id)
+                ->where('status', 'active');
+        })->orderBy('first_name')->get();
+    }
+
+    /**
      * Assemble everything a report card view needs: grades, totals, class
      * position, Uganda national result (PLE/UCE/UACE) and stored remarks.
+     * CHANGED (A3): logic moved to ReportCardDataService (shared with the queued
+     * bulk job); this thin wrapper keeps existing call sites working.
      */
     protected function buildReportData(Student $student, Exam $exam): array
     {
-        $enrollment = $student->enrollments()->where('academic_year_id', $exam->academic_year_id)->first();
-        $schoolClass = $enrollment?->schoolClass;
-
-        $figures = $this->computeFigures($student, $exam);
-        $grades = $figures['grades'];
-        $reportCard = ReportCard::firstOrNew(['student_id' => $student->id, 'exam_id' => $exam->id]);
-        $componentExams = ReportCardCompositionService::componentExams($exam);
-
-        // Format report card based on assessment format
-        $formatted = ReportCardFormatter::format(
-            $exam,
-            $grades,
-            $figures['total_marks'],
-            $figures['average'],
-            $figures['position'],
-            $figures['class_size']
-        );
-
-        return [
-            'student' => $student,
-            'exam' => $exam,
-            'grades' => $grades,
-            'enrollment' => $enrollment,
-            'schoolClass' => $schoolClass,
-            'reportCard' => $reportCard,
-            'componentExams' => $componentExams,
-            'totalMarks' => $figures['total_marks'],
-            'average' => $figures['average'],
-            'position' => $figures['position'],
-            'classSize' => $figures['class_size'],
-            'nationalExam' => $schoolClass?->nationalExam(),
-            'result' => $figures['result'],
-            'aggregate' => $figures['aggregate'],
-            'formatted' => $formatted, // New formatted data
-        ];
+        return \App\Services\ReportCardDataService::buildReportData($student, $exam);
     }
 
     /**
      * Compute totals, class position and national result for one student/exam.
+     * CHANGED (A3): moved to ReportCardDataService — see buildReportData().
      */
     protected function computeFigures(Student $student, Exam $exam): array
     {
-        $enrollment = $student->enrollments()->where('academic_year_id', $exam->academic_year_id)->first();
-        $schoolClass = $enrollment?->schoolClass;
-
-        $composed = ReportCardCompositionService::buildStudentFigures($student, $exam, $schoolClass?->id);
-        $grades = $composed['grades'];
-        $marks = $grades->pluck('marks_obtained')->filter(fn($m) => $m !== null)->map(fn($m) => (float) $m)->all();
-
-        $total = $composed['total_marks'];
-        $average = $composed['average'];
-
-        // Class position: rank every student in the same class/exam by total marks.
-        $position = null;
-        $classSize = null;
-        if ($schoolClass) {
-            $classTotals = ReportCardCompositionService::classTotals($exam, $schoolClass->id, $exam->academic_year_id)
-                ->sortDesc()
-                ->values();
-
-            $classSize = $classTotals->count();
-            $rank = $classTotals->search(fn($t) => (float) $t === (float) $total);
-            $position = $rank === false ? null : $rank + 1;
-        }
-
-        // Uganda national result (only for P.7 / S.4 / S.6).
-        $national = UgandaGrading::nationalResult($schoolClass?->nationalExam(), $marks);
-
-        return [
-            'grades' => $grades,
-            'total_marks' => $total,
-            'average' => $average,
-            'position' => $position,
-            'class_size' => $classSize,
-            'result' => $national['label'],
-            'aggregate' => $national['aggregate'],
-        ];
+        return \App\Services\ReportCardDataService::computeFigures($student, $exam);
     }
 }

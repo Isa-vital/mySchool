@@ -19,14 +19,12 @@ class UgandaGrading
      */
     public static function oLevelCompetencyLevel(float $marks): string
     {
-        // CHANGED: new curriculum competency levels.
-        return match (true) {
-            $marks >= 80 => 'A',
-            $marks >= 65 => 'B',
-            $marks >= 50 => 'C',
-            $marks >= 35 => 'D',
-            default => 'E',
-        };
+        // CHANGED (A5): boundaries now come from the same configurable source
+        // ('olevel_competency_scale' setting) used for report rendering — previously
+        // hardcoded here (80/65/50/35), which could silently disagree with config.
+        $ranges = AssessmentGradingService::rangesForFormat('o-level');
+
+        return (string) AssessmentGradingService::resolve($marks, $ranges)['grade'];
     }
 
     /**
@@ -65,11 +63,13 @@ class UgandaGrading
         $points = self::oLevelCompetencyPoints($level);
 
         $descriptor = match ($level) {
-            'A' => 'Excellent Competency',
-            'B' => 'Very Good Competency',
-            'C' => 'Satisfactory Competency',
-            'D' => 'Basic Competency',
-            default => 'Developing Competency',
+            // CHANGED (A4): official UNEB/NCDC wording — was Excellent/Very Good/
+            // Satisfactory/Basic/Developing Competency.
+            'A' => 'Exceptional',
+            'B' => 'Outstanding',
+            'C' => 'Satisfactory',
+            'D' => 'Basic',
+            default => 'Elementary',
         };
 
         return ['level' => $level, 'points' => $points, 'description' => $descriptor];
@@ -94,25 +94,36 @@ class UgandaGrading
      */
     public static function subjectGrade(float $marks): array
     {
-        $map = [
-            ['D1', 90, 100, 1, 'Distinction'],
-            ['D2', 80, 89,  2, 'Distinction'],
-            ['C3', 70, 79,  3, 'Credit'],
-            ['C4', 60, 69,  4, 'Credit'],
-            ['C5', 55, 59,  5, 'Credit'],
-            ['C6', 50, 54,  6, 'Credit'],
-            ['P7', 45, 49,  7, 'Pass'],
-            ['P8', 40, 44,  8, 'Pass'],
-            ['F9', 0,  39,  9, 'Failure'],
+        // CHANGED (A5): stanine boundaries now configurable via the 'ple_stanine_scale'
+        // setting (was hardcoded). Also fixes fractional-mark gaps: 89.5 previously fell
+        // between D2(max 89) and D1(min 90) and wrongly resolved to F9.
+        $ranges = AssessmentGradingService::rangesForSetting('ple_stanine_scale', self::defaultStanineRanges());
+        $resolved = AssessmentGradingService::resolve($marks, $ranges);
+
+        return [
+            'grade' => (string) $resolved['grade'],
+            'value' => (int) ($resolved['points'] ?? 9),
+            'description' => (string) ($resolved['description'] ?? $resolved['grade']),
         ];
+    }
 
-        foreach ($map as [$grade, $min, $max, $value, $desc]) {
-            if ($marks >= $min && $marks <= $max) {
-                return ['grade' => $grade, 'value' => $value, 'description' => $desc];
-            }
-        }
-
-        return ['grade' => 'F9', 'value' => 9, 'description' => 'Failure'];
+    /**
+     * CHANGED (A5): default UNEB stanine bands — used when no 'ple_stanine_scale'
+     * setting exists. Values mirror the previous hardcoded map.
+     */
+    private static function defaultStanineRanges(): array
+    {
+        return [
+            ['grade' => 'D1', 'min' => 90, 'max' => 100, 'points' => 1, 'description' => 'Distinction'],
+            ['grade' => 'D2', 'min' => 80, 'max' => 89.99, 'points' => 2, 'description' => 'Distinction'],
+            ['grade' => 'C3', 'min' => 70, 'max' => 79.99, 'points' => 3, 'description' => 'Credit'],
+            ['grade' => 'C4', 'min' => 60, 'max' => 69.99, 'points' => 4, 'description' => 'Credit'],
+            ['grade' => 'C5', 'min' => 55, 'max' => 59.99, 'points' => 5, 'description' => 'Credit'],
+            ['grade' => 'C6', 'min' => 50, 'max' => 54.99, 'points' => 6, 'description' => 'Credit'],
+            ['grade' => 'P7', 'min' => 45, 'max' => 49.99, 'points' => 7, 'description' => 'Pass'],
+            ['grade' => 'P8', 'min' => 40, 'max' => 44.99, 'points' => 8, 'description' => 'Pass'],
+            ['grade' => 'F9', 'min' => 0, 'max' => 39.99, 'points' => 9, 'description' => 'Failure'],
+        ];
     }
 
     /**
@@ -170,13 +181,9 @@ class UgandaGrading
      */
     public static function achievementLevel(float $marks): string
     {
-        return match (true) {
-            $marks >= 80 => 'A',
-            $marks >= 65 => 'B',
-            $marks >= 50 => 'C',
-            $marks >= 35 => 'D',
-            default => 'E',
-        };
+        // CHANGED (A5): delegates to the config-driven resolver — was a duplicated
+        // hardcoded copy of oLevelCompetencyLevel().
+        return self::oLevelCompetencyLevel($marks);
     }
 
     /**
@@ -185,23 +192,16 @@ class UgandaGrading
      */
     public static function uaceGrade(float $marks): array
     {
-        $map = [
-            ['A', 80, 100, 6],
-            ['B', 70, 79,  5],
-            ['C', 60, 69,  4],
-            ['D', 55, 59,  3],
-            ['E', 50, 54,  2],
-            ['O', 40, 49,  1],
-            ['F', 0,  39,  0],
+        // CHANGED (A5): boundaries now come from the 'alevel_grade_scale' setting
+        // (same source the report renderer uses) — previously hardcoded here.
+        // The seeded setting mirrors the old map exactly.
+        $ranges = AssessmentGradingService::rangesForFormat('a-level');
+        $resolved = AssessmentGradingService::resolve($marks, $ranges);
+
+        return [
+            'grade' => (string) $resolved['grade'],
+            'points' => (int) ($resolved['points'] ?? 0),
         ];
-
-        foreach ($map as [$grade, $min, $max, $points]) {
-            if ($marks >= $min && $marks <= $max) {
-                return ['grade' => $grade, 'points' => $points];
-            }
-        }
-
-        return ['grade' => 'F', 'points' => 0];
     }
 
     /**

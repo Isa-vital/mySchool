@@ -7,6 +7,13 @@
     </x-slot>
 
     {{-- Class & Subject Selector --}}
+    {{-- CHANGED (A2 follow-up): show a clear banner when the exam no longer accepts marks --}}
+    @if($exam && ! $exam->acceptsMarks())
+    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-sm text-orange-800">
+        <strong>{{ ucwords(str_replace('_', ' ', $exam->status)) }}:</strong> marks for this exam are read-only.
+        @can('exams.moderate') A moderator can unlock it from the <a href="{{ route('exams.show', $exam) }}" class="underline font-medium">exam page</a>. @endcan
+    </div>
+    @endif
     <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
         <form method="GET" action="{{ route('grades.enter', $exam) }}" class="flex flex-wrap gap-4 items-end">
             <div class="w-48">
@@ -29,9 +36,56 @@
             </div>
             <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background: var(--primary-color);">Load</button>
         </form>
+
+        {{-- CHANGED (UX): subject pill bar — shows done/pending per subject and jumps between them without re-selecting filters --}}
+        @if(($subjectProgress ?? collect())->count())
+        <div class="mt-4 pt-4 border-t">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-medium text-gray-500 uppercase">Subjects — {{ optional($classes->firstWhere('id', (int) $selectedClassId))->name }}</p>
+                @if($nextSubject)
+                <a href="{{ route('grades.enter', ['exam' => $exam->id, 'class_id' => $selectedClassId, 'subject_id' => $nextSubject->id]) }}"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white rounded-lg" style="background: var(--primary-color);">
+                    Next subject: {{ $nextSubject->name }}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 12h12" />
+                    </svg>
+                </a>
+                @endif
+            </div>
+            <div class="flex flex-wrap gap-2">
+                @foreach($subjectProgress as $progress)
+                <a href="{{ route('grades.enter', ['exam' => $exam->id, 'class_id' => $selectedClassId, 'subject_id' => $progress['subject']->id]) }}"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition
+                           {{ $progress['current'] ? 'ring-2 ring-offset-1' : '' }}
+                           {{ $progress['complete'] ? 'bg-green-50 border-green-200 text-green-700' : ($progress['entered'] > 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100') }}"
+                    @if($progress['current']) style="--tw-ring-color: var(--primary-color);" @endif>
+                    @if($progress['complete'])
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    @endif
+                    {{ $progress['subject']->name }}
+                    <span class="opacity-70">{{ $progress['entered'] }}/{{ $students->count() }}</span>
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 
     @if($subject && $students->count())
+    {{-- CHANGED (A6): subjects with weighted components use the component-columns table --}}
+    @if(($subjectComponents ?? collect())->isNotEmpty())
+    @include('grades.partials.component-entry', [
+    'action' => route('grades.save', $exam),
+    'exam' => $exam,
+    'subject' => $subject,
+    'students' => $students,
+    'subjectComponents' => $subjectComponents,
+    'existingComponentMarks' => $existingComponentMarks,
+    'selectedClassId' => $selectedClassId,
+    ])
+    @else
     {{-- CHANGED: replaced the static marks table with the reusable <x-grade-entry-form> component
          (live grade preview, keyboard nav, progress bar, unsaved-changes guard, save confirmation). --}}
     <x-grade-entry-form
@@ -97,6 +151,7 @@
     </div>
     </form>
     --}}
+    @endif {{-- CHANGED (A6): closes the component-vs-single entry branch --}}
     @elseif($selectedClassId && $selectedSubjectId)
     <div class="bg-white rounded-xl shadow-sm border p-12 text-center text-gray-500">
         No students enrolled in the selected class for this exam's academic year.

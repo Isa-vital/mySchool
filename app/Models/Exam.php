@@ -6,6 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Exam extends Model
 {
+    // CHANGED (A2): marks lock/moderation workflow states.
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_MARKS_ENTRY_OPEN = 'marks_entry_open';
+    public const STATUS_LOCKED = 'locked';
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_MARKS_ENTRY_OPEN,
+        self::STATUS_LOCKED,
+        self::STATUS_PUBLISHED,
+    ];
+
     protected $fillable = [
         'name',
         'academic_year_id',
@@ -14,6 +27,7 @@ class Exam extends Model
         'end_date',
         'description',
         'is_published',
+        'status',
         'assessment_format',
         'max_points',
         'is_report_card',
@@ -32,6 +46,35 @@ class Exam extends Model
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    /**
+     * CHANGED (A2): marks may only be written before the exam is locked/published.
+     */
+    public function acceptsMarks(): bool
+    {
+        return ! in_array($this->status, [self::STATUS_LOCKED, self::STATUS_PUBLISHED], true);
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === self::STATUS_LOCKED;
+    }
+
+    /**
+     * Allowed status transitions. Unlocking and unpublishing require 'exams.moderate'.
+     *
+     * @return array<string, array{to: string, moderate: bool}>
+     */
+    public static function statusTransitions(): array
+    {
+        return [
+            'open'      => ['from' => self::STATUS_DRAFT, 'to' => self::STATUS_MARKS_ENTRY_OPEN, 'moderate' => false],
+            'lock'      => ['from' => self::STATUS_MARKS_ENTRY_OPEN, 'to' => self::STATUS_LOCKED, 'moderate' => false],
+            'publish'   => ['from' => self::STATUS_LOCKED, 'to' => self::STATUS_PUBLISHED, 'moderate' => false],
+            'unlock'    => ['from' => self::STATUS_LOCKED, 'to' => self::STATUS_MARKS_ENTRY_OPEN, 'moderate' => true],
+            'unpublish' => ['from' => self::STATUS_PUBLISHED, 'to' => self::STATUS_LOCKED, 'moderate' => true],
+        ];
     }
 
     public function term()

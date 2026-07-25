@@ -31,24 +31,24 @@ return [
 // and new normalized array ranges from AssessmentGradingService::previewRangesForExam().
 // CHANGED: old object-only mapping preserved for reference.
 // $rangesPayload = collect($gradingRanges ?? [])->map(fn ($r) => [
-//     'grade' => $r->grade,
-//     'min' => (float) $r->min_mark,
-//     'max' => (float) $r->max_mark,
+// 'grade' => $r->grade,
+// 'min' => (float) $r->min_mark,
+// 'max' => (float) $r->max_mark,
 // ])->values();
 $rangesPayload = collect($gradingRanges ?? [])->map(function ($r) {
-    if (is_array($r)) {
-        return [
-            'grade' => (string) ($r['grade'] ?? '-'),
-            'min' => (float) ($r['min'] ?? $r['min_mark'] ?? 0),
-            'max' => (float) ($r['max'] ?? $r['max_mark'] ?? 100),
-        ];
-    }
+if (is_array($r)) {
+return [
+'grade' => (string) ($r['grade'] ?? '-'),
+'min' => (float) ($r['min'] ?? $r['min_mark'] ?? 0),
+'max' => (float) ($r['max'] ?? $r['max_mark'] ?? 100),
+];
+}
 
-    return [
-        'grade' => (string) ($r->grade ?? '-'),
-        'min' => (float) ($r->min ?? $r->min_mark ?? 0),
-        'max' => (float) ($r->max ?? $r->max_mark ?? 100),
-    ];
+return [
+'grade' => (string) ($r->grade ?? '-'),
+'min' => (float) ($r->min ?? $r->min_mark ?? 0),
+'max' => (float) ($r->max ?? $r->max_mark ?? 100),
+];
 })->values();
 @endphp
 
@@ -148,12 +148,28 @@ $rangesPayload = collect($gradingRanges ?? [])->map(function ($r) {
             <p class="text-sm" :class="invalidCount > 0 ? 'text-red-600 font-medium' : 'text-gray-500'"
                 x-text="invalidCount > 0 ? `${invalidCount} mark(s) out of range` : `${gradedCount} of ${rows.length} students ready to save`"></p>
             <div class="flex items-center gap-3">
+                {{-- CHANGED (A2 follow-up): publishing now requires the exam to be LOCKED first.
+                     This button adapts: while marks entry is open it locks (and opens, if still
+                     draft) then publishes in one confirmed flow; when already locked it publishes
+                     directly; when published it disappears. --}}
                 @if($exam && !$exam->is_published)
+                @can('exams.edit')
+                @php
+                $prePublishActions = match ($exam->status ?? 'marks_entry_open') {
+                'draft' => ['open', 'lock'],
+                'marks_entry_open' => ['lock'],
+                default => [],
+                };
+                @endphp
                 <button type="button" @click="publishExam()"
+                    id="grade-entry-publish-btn"
+                    data-pre-actions="{{ json_encode($prePublishActions) }}"
+                    data-status-url="{{ route('exams.status', $exam) }}"
                     class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm hover:opacity-90"
                     style="background: #16a34a;">
-                    Publish Exam
+                    {{ count($prePublishActions) ? 'Lock & Publish' : 'Publish Exam' }}
                 </button>
+                @endcan
                 @endif
                 <button type="submit"
                     class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm disabled:opacity-50"
@@ -272,42 +288,71 @@ $rangesPayload = collect($gradingRanges ?? [])->map(function ($r) {
                 });
             },
             publishExam() {
-                const primary = getComputedStyle(document.documentElement)
-                    .getPropertyValue('--primary-color').trim() || '#1e40af';
+                // CHANGED (A2 follow-up): publishing requires LOCKED status. If marks entry
+                // is still open (or draft), run the required status transitions first —
+                // each one is a separate audited step on the server.
+                const btn = document.getElementById('grade-entry-publish-btn');
+                const preActions = JSON.parse(btn?.dataset.preActions || '[]');
+                const statusUrl = btn?.dataset.statusUrl;
+                const csrf = document.querySelector('input[name="_token"]').value;
+
+                if (this.dirty) {
+                    Swal.fire('Unsaved marks', 'Save your marks before locking and publishing.', 'warning');
+                    return;
+                }
+
+                const runPreActions = async () => {
+                    for (const action of preActions) {
+                        const resp = await fetch(statusUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'Accept': 'text/html,application/json',
+                            },
+                            body: 'action=' + encodeURIComponent(action),
+                        });
+                        if (!resp.ok) throw new Error('Could not ' + action + ' the exam (HTTP ' + resp.status + ')');
+                    }
+                };
+
                 Swal.fire({
-                    title: 'Publish this exam?',
-                    html: 'Guardians will receive an email with the exam results. <b>This cannot be undone easily.</b>',
+                    title: preActions.length ? 'Lock marks & publish?' : 'Publish this exam?',
+                    html: (preActions.length
+                            ? '<p class="mb-2">Marks entry will be <b>locked</b> (a moderator must unlock to change marks).</p>'
+                            : '')
+                        + 'Guardians will receive an email with the exam results. <b>This cannot be undone easily.</b>',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Yes, publish',
+                    confirmButtonText: preActions.length ? 'Lock & publish' : 'Yes, publish',
                     confirmButtonColor: '#16a34a',
                 }).then(res => {
-                    if (res.isConfirmed) {
-                        const examId = document.querySelector('[data-exam-id]')?.dataset.examId;
-                        if (!examId) {
-                            Swal.fire('Error', 'Exam ID not found', 'error');
-                            return;
-                        }
-                        fetch(`/exams/${examId}/publish`, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                                    'Accept': 'application/json',
-                                }
-                            })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (data.success) {
-                                    Swal.fire('Published!', 'Exam published and guardians notified.', 'success')
-                                        .then(() => window.location.reload());
-                                } else {
-                                    Swal.fire('Error', data.message || 'Failed to publish exam', 'error');
-                                }
-                            })
-                            .catch(err => {
-                                Swal.fire('Error', 'Network error: ' + err.message, 'error');
-                            });
+                    if (!res.isConfirmed) return;
+                    const examId = document.querySelector('[data-exam-id]')?.dataset.examId;
+                    if (!examId) {
+                        Swal.fire('Error', 'Exam ID not found', 'error');
+                        return;
                     }
+                    runPreActions()
+                        .then(() => fetch(`/exams/${examId}/publish`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'Accept': 'application/json',
+                            }
+                        }))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('Published!', 'Exam published and guardians notified.', 'success')
+                                    .then(() => window.location.reload());
+                            } else {
+                                Swal.fire('Error', data.message || 'Failed to publish exam', 'error');
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire('Error', err.message, 'error');
+                        });
                 });
             },
         };

@@ -6,12 +6,10 @@
         </div>
     </x-slot>
 
-    @php
-    $existingComponents = $exam->reportComponents->map(fn ($c) => [
-    'exam_id' => $c->id,
-    'weight' => (float) $c->pivot->weight,
-    ])->values()->all();
-    @endphp
+    {{-- CHANGED (rebuilt Jul 18): a code formatter reformatted this file as JavaScript and destroyed it.
+         Rebuilt with ALL script data prepared in ExamController::edit() — no PHP expressions live in
+         @php or <script> here, so a formatter cannot corrupt the page again.
+         DO NOT RUN "FORMAT DOCUMENT" ON BLADE FILES. --}}
 
     <form method="POST" action="{{ route('exams.update', $exam) }}">
         @csrf @method('PUT')
@@ -44,11 +42,14 @@
                     <input type="date" name="end_date" value="{{ old('end_date', $exam->end_date?->format('Y-m-d')) }}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Report Card Format <span class="text-red-500">*</span></label>
-                    <select name="assessment_format" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" required>
-                        <option value="primary" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'primary' ? 'selected' : '' }}>Primary</option>
-                        <option value="o-level" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'o-level' ? 'selected' : '' }}>O-Level</option>
-                        <option value="a-level" {{ old('assessment_format', $exam->assessment_format ?? setting('report_card_format', 'primary')) === 'a-level' ? 'selected' : '' }}>A-Level</option>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Report Card Format</label>
+                    {{-- CHANGED (A1): auto-detect is the empty value (stored as NULL); format resolves
+                         from each student's class (P.1-P.7 primary, S.1-S.4 o-level, S.5-S.6 a-level). --}}
+                    <select name="assessment_format" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="" {{ old('assessment_format', $exam->assessment_format ?? '') === '' ? 'selected' : '' }}>Auto (based on class)</option>
+                        <option value="primary" {{ old('assessment_format', $exam->assessment_format) === 'primary' ? 'selected' : '' }}>Primary</option>
+                        <option value="o-level" {{ old('assessment_format', $exam->assessment_format) === 'o-level' ? 'selected' : '' }}>O-Level</option>
+                        <option value="a-level" {{ old('assessment_format', $exam->assessment_format) === 'a-level' ? 'selected' : '' }}>A-Level</option>
                     </select>
                 </div>
                 <div>
@@ -63,20 +64,12 @@
                         <option value="{{ $gradingScale->id }}" {{ (string) old('grading_scale_id', $exam->grading_scale_id) === (string) $gradingScale->id ? 'selected' : '' }}>{{ $gradingScale->name }}</option>
                         @endforeach
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Optional. Overrides the default grading rules for this exam.</p>
                 </div>
-                <div class="flex items-center pt-6">
+                <div class="flex items-center pt-6 space-x-6">
                     <label class="flex items-center space-x-2 cursor-pointer">
                         <input type="checkbox" name="is_report_card" id="is_report_card" value="1" {{ old('is_report_card', $exam->is_report_card) ? 'checked' : '' }} class="rounded text-blue-600">
                         <span class="text-sm font-medium text-gray-700">Use as report card exam</span>
                     </label>
-                </div>
-                <div class="flex items-center pt-6">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" name="is_published" value="1" {{ old('is_published', $exam->is_published) ? 'checked' : '' }} class="rounded text-green-600">
-                        <span class="text-sm font-medium text-gray-700">Published</span>
-                    </label>
-                    <p class="text-xs text-gray-500 ml-2">(Students & guardians can view report cards)</p>
                 </div>
                 <div class="md:col-span-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
@@ -89,7 +82,7 @@
             <div class="flex items-center justify-between mb-3">
                 <div>
                     <h3 class="text-sm font-semibold text-gray-800">Report Card Composition</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Add the exam sets that make up this report card and assign each a weight. Any names and any number of sets work — the system normalizes marks automatically.</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Pick the exams that make up this report and give each a weight — e.g. Exam 1: 40, Exam 2: 40, Exam 3: 20. The total is normalized to 100 automatically.</p>
                 </div>
                 <button type="button" id="add-component-btn" class="px-3 py-1.5 text-xs font-medium text-white rounded-lg shrink-0" style="background: var(--primary-color);">+ Add exam set</button>
             </div>
@@ -98,7 +91,7 @@
                 {{-- rows injected by JS --}}
             </div>
 
-            <p class="text-xs text-gray-400 mt-3">Weights can be anything — 20/30/50, 1/2/3, percentages, or equal values. The total is normalized to 100 automatically.</p>
+            <p class="text-xs text-gray-400 mt-3">Weights can be anything — 40/40/20, 1/2/3, percentages, or equal values.</p>
         </div>
 
         <div class="flex items-center justify-end space-x-3">
@@ -107,19 +100,16 @@
         </div>
     </form>
 
-    {{-- JS: Filter terms by selected academic year + dynamic component builder --}}
+    {{-- All constants below come from ExamController::edit(); keep this block free of PHP expressions. --}}
     <script>
-        const termsByYear = @json($academicYears->mapWithKeys(fn($y) => [$y->id => $y->terms]));
-        const examOptions = @json($availableComponentExams->map(fn($e) => ['id' => $e->id, 'label' => $e->name.
-            ' - '.($e->term->name ?? 'No Term').
-            ' / '.($e->academicYear->name ?? 'No Year')
-        ]));
-        const savedComponents = @json(collect(old('report_components', []))->filter(fn($r) => ($r['exam_id'] ?? '') !== ''));
-        const existingComponents = @json($existingComponents);
+        const termsByYear = @json($termsByYearData);
+        const examOptions = @json($examOptionsData);
+        const savedComponents = @json($savedComponentsData);
+        const existingComponents = @json($existingComponentsData);
+        const preselectedTermId = @json($preselectedTermId);
 
         const yearSelect = document.getElementById('academic_year_id');
         const termSelect = document.getElementById('term_id');
-        const currentTermId = '{{ old("term_id", $exam->term_id) }}';
         const reportCardCheckbox = document.getElementById('is_report_card');
         const reportComponentsPanel = document.getElementById('report-components-panel');
         const componentsList = document.getElementById('components-list');
@@ -133,7 +123,7 @@
                     const opt = document.createElement('option');
                     opt.value = term.id;
                     opt.textContent = term.name;
-                    if (currentTermId == term.id) opt.selected = true;
+                    if (preselectedTermId && preselectedTermId == term.id) opt.selected = true;
                     termSelect.appendChild(opt);
                 });
             }
@@ -154,21 +144,21 @@
             const row = document.createElement('div');
             row.className = 'flex gap-3 items-center component-row';
             row.innerHTML = `
-                    <div class="flex-1">
-                        <label class="block text-xs font-medium text-gray-500 mb-0.5">Exam Set</label>
-                        ${buildSelectHtml('report_components[' + idx + '][exam_id]', examId ?? '')}
-                    </div>
-                    <div class="w-28">
-                        <label class="block text-xs font-medium text-gray-500 mb-0.5">Weight</label>
-                        <input type="number" step="0.01" min="0" name="report_components[${idx}][weight]"
-                            value="${weight ?? ''}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" placeholder="e.g. 30">
-                    </div>
-                    <div class="pt-5">
-                        <button type="button" onclick="this.closest('.component-row').remove(); reindex();"
-                            class="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>`;
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-500 mb-0.5">Exam Set</label>
+                    ${buildSelectHtml('report_components[' + idx + '][exam_id]', examId ?? '')}
+                </div>
+                <div class="w-28">
+                    <label class="block text-xs font-medium text-gray-500 mb-0.5">Weight</label>
+                    <input type="number" step="0.01" min="0" name="report_components[${idx}][weight]"
+                        value="${weight ?? ''}" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" placeholder="e.g. 40">
+                </div>
+                <div class="pt-5">
+                    <button type="button" onclick="this.closest('.component-row').remove(); reindex();"
+                        class="p-1.5 text-gray-400 hover:text-red-500 rounded" title="Remove">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>`;
             componentsList.appendChild(row);
         }
 
@@ -191,7 +181,7 @@
         populateTerms();
         toggleReportComponents();
 
-        // Restore old input (validation failure) or existing saved components
+        // Restore old input (validation failure) or existing saved components.
         const initialComponents = savedComponents.length ? savedComponents : existingComponents;
         if (initialComponents.length) {
             initialComponents.forEach(c => addComponent(c.exam_id, c.weight));

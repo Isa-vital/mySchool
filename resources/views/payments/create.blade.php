@@ -83,13 +83,20 @@
     </div>
 
     @push('scripts')
+    {{-- CHANGED (permanent formatter fix): dynamic values moved into data attributes on
+         #payment-form-data — a code formatter mangles Blade echoes inside <script> blocks
+         (it broke exams/show the same way). KEEP PHP/BLADE EXPRESSIONS OUT OF THIS BLOCK. --}}
+    <span id="payment-form-data" class="hidden"
+        data-student-id="{{ old('student_id', $selectedStudentId) }}"
+        data-create-url="{{ route('payments.create') }}"></span>
     <script>
         function paymentForm() {
+            const cfg = document.getElementById('payment-form-data').dataset;
             return {
-                studentId: '{{ old('student_id', $selectedStudentId) }}',
+                studentId: cfg.studentId,
                 fetchInvoices() {
                     if (this.studentId) {
-                        window.location.href = '{{ route('payments.create') }}?student_id=' + this.studentId;
+                        window.location.href = cfg.createUrl + '?student_id=' + this.studentId;
                     }
                 }
             }

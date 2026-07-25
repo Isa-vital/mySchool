@@ -35,6 +35,18 @@
 
     {{-- Grades Form --}}
     @if($students->isNotEmpty() && $subject)
+    {{-- CHANGED (A6): subjects with weighted components use the component-columns table --}}
+    @if(($subjectComponents ?? collect())->isNotEmpty())
+    @include('grades.partials.component-entry', [
+    'action' => route('teacher.save-grades', $exam),
+    'exam' => $exam,
+    'subject' => $subject,
+    'students' => $students,
+    'subjectComponents' => $subjectComponents,
+    'existingComponentMarks' => $existingComponentMarks,
+    'selectedClassId' => $selectedClassId,
+    ])
+    @else
     {{-- CHANGED: replaced the static marks table with the shared <x-grade-entry-form> component
          (live grade preview, keyboard nav, progress, unsaved-changes guard, save confirmation). --}}
     <x-grade-entry-form
@@ -100,6 +112,7 @@
     </div>
     </form>
     --}}
+    @endif {{-- CHANGED (A6): closes the component-vs-single entry branch --}}
     @elseif($selectedClassId && $selectedSubjectId)
     <div class="bg-white rounded-xl shadow-sm border p-8 text-center">
         <p class="text-gray-400 text-sm">No students enrolled in this class</p>

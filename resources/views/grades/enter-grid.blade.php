@@ -53,8 +53,8 @@
     </div>
 
     <form method="POST" action="{{ route('grades.save-grid', $reportExam) }}"
-          x-data="gradeGrid({{ $componentExams->count() }})"
-            x-on:submit.prevent="confirmSave()">
+        x-data="gradeGrid({{ $componentExams->count() }})"
+        x-on:submit.prevent="confirmSave()">
         @csrf
         <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
         <input type="hidden" name="subject_id" value="{{ $selectedSubjectId }}">
@@ -77,15 +77,15 @@
 
             <div class="overflow-x-auto">
                 @php
-                    // CHANGED: precompute exams payload for Alpine to avoid Blade parser issues
-                    // with nested inline arrays/functions inside HTML attributes.
-                    $gridExamsPayload = $componentExams->map(function ($e) use ($fullMarks) {
-                        return [
-                            'id' => (int) $e->id,
-                            'weight' => (float) ($e->pivot->weight ?? 0),
-                            'full' => (float) ($fullMarks[$e->id] ?? 100),
-                        ];
-                    })->values();
+                // CHANGED: precompute exams payload for Alpine to avoid Blade parser issues
+                // with nested inline arrays/functions inside HTML attributes.
+                $gridExamsPayload = $componentExams->map(function ($e) use ($fullMarks) {
+                return [
+                'id' => (int) $e->id,
+                'weight' => (float) ($e->pivot->weight ?? 0),
+                'full' => (float) ($fullMarks[$e->id] ?? 100),
+                ];
+                })->values();
                 @endphp
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50">
@@ -108,10 +108,10 @@
                     <tbody class="divide-y divide-gray-200" id="grade-grid-body">
                         @foreach($students as $i => $student)
                         @php
-                            $rowMarks = [];
-                            foreach ($componentExams as $compExam) {
-                                $rowMarks[$compExam->id] = $gridGrades[$student->id][$compExam->id] ?? null;
-                            }
+                        $rowMarks = [];
+                        foreach ($componentExams as $compExam) {
+                        $rowMarks[$compExam->id] = $gridGrades[$student->id][$compExam->id] ?? null;
+                        }
                         @endphp
                         <tr class="hover:bg-gray-50" x-data='gradeRow({{ $weightTotal }}, @json($gridExamsPayload))' x-on:input="onInput(); $dispatch('row-updated')">
                             <td class="px-4 py-2 text-gray-400 sticky left-0 bg-white">{{ $i + 1 }}</td>
@@ -133,8 +133,7 @@
                                     x-on:keydown.enter.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
                                     x-on:keydown.arrow-down.prevent="$el.closest('tr').nextElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
                                     x-on:keydown.arrow-up.prevent="$el.closest('tr').previousElementSibling?.querySelector('input[data-exam-id=\'{{ $compExam->id }}\']')?.focus()"
-                                    x-ref="mark_{{ $compExam->id }}"
-                                >
+                                    x-ref="mark_{{ $compExam->id }}">
                             </td>
                             @endforeach
                             <td class="px-3 py-2 text-center font-bold text-gray-800">
@@ -177,104 +176,107 @@
     </div>
     @endif
 
-<script>
-    @php
-        $gradingRangesPayload = collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))
-            ->map(function ($r) {
+    <script>
+        @php
+        $gradingRangesPayload = collect(\App\ Services\ AssessmentGradingService::rangesForExam($reportExam)) -
+            > map(function($r) {
                 return [
                     'grade' => $r['grade'],
                     'min' => (float) $r['min'],
                     'max' => (float) $r['max'],
                 ];
-            })
-            ->values();
-    @endphp
+            }) -
+            > values();
+        @endphp
 
-    // Grading ranges from server for live grade preview
-    // CHANGED: simplified payload rendering to prevent Blade parser mismatch in production.
-    // CHANGED: previous inline expression preserved for reference.
-    // const gradingRanges = @json(
-    //     collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))->map(fn($r) => [
-    //         'grade' => $r['grade'],
-    //         'min'   => (float) $r['min'],
-    //         'max'   => (float) $r['max'],
-    //     ])->values()
-    // );
-    const gradingRanges = @json($gradingRangesPayload);
+        // Grading ranges from server for live grade preview
+        // CHANGED: simplified payload rendering to prevent Blade parser mismatch in production.
+        // CHANGED: previous inline expression preserved for reference.
+        // const gradingRanges = @json(
+        //     collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))->map(fn($r) => [
+        //         'grade' => $r['grade'],
+        //         'min'   => (float) $r['min'],
+        //         'max'   => (float) $r['max'],
+        //     ])->values()
+        // );
+        const gradingRanges = @json($gradingRangesPayload);
 
-    function resolveGrade(pct) {
-        for (const r of gradingRanges) {
-            if (pct >= r.min && pct <= r.max) return r.grade;
+        function resolveGrade(pct) {
+            for (const r of gradingRanges) {
+                if (pct >= r.min && pct <= r.max) return r.grade;
+            }
+            return gradingRanges.length ? gradingRanges[gradingRanges.length - 1].grade : '–';
         }
-        return gradingRanges.length ? gradingRanges[gradingRanges.length - 1].grade : '–';
-    }
 
-    function gradeClass(g) {
-        const colorMap = {
-            'Excellent': 'bg-green-100 text-green-800',
-            'Very Good': 'bg-green-100 text-green-800',
-            'Good': 'bg-blue-100 text-blue-800',
-            'Satisfactory': 'bg-yellow-100 text-yellow-800',
-            'Fair': 'bg-orange-100 text-orange-800',
-            'Poor': 'bg-red-100 text-red-800',
-            'Fail': 'bg-red-100 text-red-800',
-        };
-        return colorMap[g] || 'bg-gray-100 text-gray-700';
-    }
+        function gradeClass(g) {
+            const colorMap = {
+                'Excellent': 'bg-green-100 text-green-800',
+                'Very Good': 'bg-green-100 text-green-800',
+                'Good': 'bg-blue-100 text-blue-800',
+                'Satisfactory': 'bg-yellow-100 text-yellow-800',
+                'Fair': 'bg-orange-100 text-orange-800',
+                'Poor': 'bg-red-100 text-red-800',
+                'Fail': 'bg-red-100 text-red-800',
+            };
+            return colorMap[g] || 'bg-gray-100 text-gray-700';
+        }
 
-    // Per-row Alpine component
-    function gradeRow(weightTotal, exams) {
-        return {
-            weighted: 0,
-            grade: '',
-            gradeClass: 'bg-gray-100 text-gray-700',
-            onInput() {
-                let sum = 0;
-                let hasAny = false;
-                for (const exam of exams) {
-                    const inp = this.$el.querySelector(`input[data-exam-id="${exam.id}"]`);
-                    const val = parseFloat(inp?.value);
-                    if (!isNaN(val) && inp?.value !== '') {
-                        const pct = exam.full > 0 ? (val / exam.full) * 100 : 0;
-                        sum += pct * (exam.weight / weightTotal);
-                        hasAny = true;
+        // Per-row Alpine component
+        function gradeRow(weightTotal, exams) {
+            return {
+                weighted: 0,
+                grade: '',
+                gradeClass: 'bg-gray-100 text-gray-700',
+                onInput() {
+                    let sum = 0;
+                    let hasAny = false;
+                    for (const exam of exams) {
+                        const inp = this.$el.querySelector(`input[data-exam-id="${exam.id}"]`);
+                        const val = parseFloat(inp?.value);
+                        if (!isNaN(val) && inp?.value !== '') {
+                            const pct = exam.full > 0 ? (val / exam.full) * 100 : 0;
+                            sum += pct * (exam.weight / weightTotal);
+                            hasAny = true;
+                        }
                     }
-                }
-                this.weighted = hasAny ? Math.round(sum * 10) / 10 : 0;
-                this.grade = hasAny ? resolveGrade(this.weighted) : '';
-                this.gradeClass = gradeClass(this.grade);
-            },
-        };
-    }
+                    this.weighted = hasAny ? Math.round(sum * 10) / 10 : 0;
+                    this.grade = hasAny ? resolveGrade(this.weighted) : '';
+                    this.gradeClass = gradeClass(this.grade);
+                },
+            };
+        }
 
-    // Parent form component (dirty tracking + save confirmation)
-    function gradeGrid(columnCount) {
-        return {
-            dirty: false,
-            enteredCount: 0,
-            init() {
-                const form = this.$el;
-                form.addEventListener('input', () => { this.dirty = true; this.countEntered(); });
-                this.$nextTick(() => this.countEntered());
-            },
-            countEntered() {
-                const inputs = this.$el.querySelectorAll('input[type="number"]');
-                const rows = {};
-                inputs.forEach(inp => {
-                    const row = inp.closest('tr');
-                    if (inp.value !== '' && row) {
-                        rows[row.rowIndex] = true;
+        // Parent form component (dirty tracking + save confirmation)
+        function gradeGrid(columnCount) {
+            return {
+                dirty: false,
+                enteredCount: 0,
+                init() {
+                    const form = this.$el;
+                    form.addEventListener('input', () => {
+                        this.dirty = true;
+                        this.countEntered();
+                    });
+                    this.$nextTick(() => this.countEntered());
+                },
+                countEntered() {
+                    const inputs = this.$el.querySelectorAll('input[type="number"]');
+                    const rows = {};
+                    inputs.forEach(inp => {
+                        const row = inp.closest('tr');
+                        if (inp.value !== '' && row) {
+                            rows[row.rowIndex] = true;
+                        }
+                    });
+                    this.enteredCount = Object.keys(rows).length;
+                },
+                confirmSave() {
+                    if (!this.dirty) return;
+                    if (confirm('Save marks for all students?')) {
+                        this.$el.submit();
                     }
-                });
-                this.enteredCount = Object.keys(rows).length;
-            },
-            confirmSave() {
-                if (!this.dirty) return;
-                if (confirm('Save marks for all students?')) {
-                    this.$el.submit();
-                }
-            },
-        };
-    }
-</script>
+                },
+            };
+        }
+    </script>
 </x-app-layout>

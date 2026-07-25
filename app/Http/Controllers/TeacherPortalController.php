@@ -188,9 +188,12 @@ class TeacherPortalController extends Controller
         $subject = null;
 
         // CHANGED: use the exam's grading profile for live preview and validation.
-        $gradingRanges = collect(\App\Services\AssessmentGradingService::previewRangesForExam($exam));
+        // CHANGED: ranges computed after the class is known so 'auto' format
+        // previews the class-appropriate scale.
+        $gradingRanges = collect();
         $fullMarks = 100;
         $passMarks = 40;
+        $class = null;
 
         if ($selectedClassId) {
             $class = SchoolClass::find($selectedClassId);
@@ -208,6 +211,8 @@ class TeacherPortalController extends Controller
                 $existingGrades = Grade::where('exam_id', $exam->id)
                     ->where('school_class_id', $selectedClassId)
                     ->where('subject_id', $selectedSubjectId)
+                    // CHANGED (A6): whole-subject rows only; component rows load separately below.
+                    ->whereNull('subject_component_id')
                     ->get()
                     ->keyBy('student_id');
 
@@ -222,12 +227,44 @@ class TeacherPortalController extends Controller
             }
         }
 
-        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks'));
+        // CHANGED: class-aware ranges so 'auto' format previews correctly.
+        $gradingRanges = collect(\App\Services\AssessmentGradingService::previewRangesForExam($exam, $class));
+
+        // CHANGED (A6): subjects with weighted components use the component-columns table.
+        $subjectComponents = $subject ? $subject->components()->get() : collect();
+        $existingComponentMarks = ($subject && $subjectComponents->isNotEmpty() && $selectedClassId)
+            ? \App\Services\ComponentMarksService::existingMarks($exam, (int) $selectedClassId, $subject)
+            : collect();
+
+        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectComponents', 'existingComponentMarks'));
     }
 
     public function saveGrades(Request $request, Exam $exam)
     {
         abort_if($exam->is_report_card, 422, 'Report-card exams are computed from component exams and do not accept direct grade entry.');
+
+        // CHANGED (A2): marks are frozen once the exam is locked/published.
+        abort_unless($exam->acceptsMarks(), 423, 'Marks for this exam are locked. Ask a moderator to unlock it before editing.');
+
+        // CHANGED (A6): component-subject path — raw scores per weighted component.
+        $componentSubject = Subject::find($request->subject_id);
+        if ($componentSubject && $componentSubject->hasComponents() && $request->filled('component_marks')) {
+            $request->validate(['class_id' => 'required|exists:school_classes,id', 'subject_id' => 'required|exists:subjects,id']);
+
+            $saved = \App\Services\ComponentMarksService::saveMarks(
+                $exam,
+                (int) $request->class_id,
+                $componentSubject,
+                (array) $request->input('component_marks', []),
+                (int) auth()->id()
+            );
+
+            return redirect()->route('teacher.enter-grades', [
+                'exam' => $exam->id,
+                'class_id' => $request->class_id,
+                'subject_id' => $request->subject_id,
+            ])->with('success', "{$saved} component score(s) saved.");
+        }
 
         $validated = $request->validate([
             'class_id' => 'required|exists:school_classes,id',
@@ -238,10 +275,15 @@ class TeacherPortalController extends Controller
             'grades.*.remarks' => 'nullable|string|max:500',
         ]);
 
+        // CHANGED: resolve against the selected class so 'auto' format uses the
+        // class-appropriate scale (primary/o-level/a-level).
+        $gradeClass = SchoolClass::find((int) $request->class_id);
+
         foreach ($request->grades as $gradeData) {
             if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {
                 $marks = (float) $gradeData['marks_obtained'];
-                $resolved = \App\Services\AssessmentGradingService::resolveForExam($exam, $marks);
+                // CHANGED: was resolveForExam($exam, $marks)
+                $resolved = \App\Services\AssessmentGradingService::resolveForExam($exam, $marks, $gradeClass);
                 $gradeLetter = $resolved['grade'];
 
                 Grade::updateOrCreate(

@@ -32,7 +32,8 @@
             </div>
             <div class="w-48">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                <select name="subject_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                {{-- CHANGED (UX): required — submitting without a subject silently reloaded the page --}}
+                <select name="subject_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                     <option value="">Select Subject</option>
                     @foreach($subjects as $subj)
                     <option value="{{ $subj->id }}" {{ request('subject_id') == $subj->id ? 'selected' : '' }}>{{ $subj->name }}</option>
@@ -49,6 +50,14 @@
             Enter marks for all component exams (e.g. BOT, MOT, EOT) at once. Weighted total and grade are calculated automatically.
         </p>
     </div>
+    @else
+    {{-- CHANGED (UX): explain WHY the grid section is missing instead of hiding it silently --}}
+    @can('exams.create')
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800 flex items-center justify-between gap-4">
+        <span><strong>No report card exam yet.</strong> Create one that combines your exam sets (e.g. BOT 20 + MOT 30 + EOT 50) to unlock grid entry and term report cards.</span>
+        <a href="{{ route('exams.term-setup') }}" class="shrink-0 px-4 py-2 text-xs font-semibold text-white rounded-lg bg-amber-500 hover:bg-amber-600">Set up now →</a>
+    </div>
+    @endcan
     @endif
 
     {{-- SECONDARY: Single Exam Entry (existing flow) --}}
@@ -79,7 +88,8 @@
             </div>
             <div class="w-48">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                <select name="subject_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                {{-- CHANGED (UX): required — submitting without a subject silently reloaded the page --}}
+                <select name="subject_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                     <option value="">Select Subject</option>
                     @foreach($subjects as $subj)
                     <option value="{{ $subj->id }}" {{ request('subject_id') == $subj->id ? 'selected' : '' }}>{{ $subj->name }}</option>

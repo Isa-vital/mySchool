@@ -17,7 +17,9 @@ class StoreExamRequest extends FormRequest
             'name' => 'required|string|max:255',
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
-            'assessment_format' => 'nullable|in:primary,o-level,a-level',
+            // CHANGED: 'auto' resolves format from each student's class (P.1-P.7 primary, S.1-S.4 o-level, S.5-S.6 a-level)
+            // 'assessment_format' => 'nullable|in:primary,o-level,a-level',
+            'assessment_format' => 'nullable|in:auto,primary,o-level,a-level',
             'max_points' => 'nullable|integer|min:1|max:500',
             'is_report_card' => 'nullable|boolean',
             'grading_scale_id' => 'nullable|exists:grading_scales,id',

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- CHANGED: theme colour CSS variables are now set via the style ATTRIBUTE on <html> (the <html> element IS :root).
+     Formatters never reformat attribute values, so this cannot be mangled again. --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" style="--primary-color: {{ setting('primary_color', '#1e40af') }}; --secondary-color: {{ setting('secondary_color', '#7c3aed') }};">
 
 <head>
     <meta charset="utf-8">
@@ -34,28 +36,10 @@
     <!-- SweetAlert2 (for success / error notifications) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- CHANGED: restored Blade echo syntax; a formatter had mangled {{ }} into "{ { } }" with line breaks, which broke the CSS variables so the theme colour never applied --}}
-    <style>
-        :root {
-            /* CHANGED: preserved malformed formatter output for reference.
-               --primary-color: {
-                       {
-                       setting('primary_color', '#1e40af')
-                   }
-               }
-               ;
-               --secondary-color: {
-                       {
-                       setting('secondary_color', '#7c3aed')
-                   }
-               }
-               ;
-            */
-
-            --primary-color: {{ setting('primary_color', '#1e40af') }};
-            --secondary-color: {{ setting('secondary_color', '#7c3aed') }};
-        }
-    </style>
+    {{-- CHANGED (permanent fix): removed the :root <style> block entirely. CSS/HTML formatters kept
+         mangling the Blade braces inside it (turning them into invalid CSS), so colour changes in
+         Settings never applied. The --primary-color / --secondary-color variables are now set via the
+         style attribute on the <html> tag above, which formatters never touch. --}}
 </head>
 
 <body class="font-sans antialiased" x-data="{ sidebarOpen: true, mobileSidebarOpen: false }">

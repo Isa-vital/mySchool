@@ -4,14 +4,48 @@ namespace App\Services;
 
 use App\Models\Exam;
 use App\Models\GradingScale;
+use App\Models\SchoolClass;
 
 class AssessmentGradingService
 {
-    public static function rangesForExam(Exam $exam): array
+    // CHANGED: accept optional class so 'auto' format resolves per student's class
+    // (P.1-P.7 => primary, S.1-S.4 => o-level, S.5-S.6 => a-level).
+    public static function rangesForExam(Exam $exam, ?SchoolClass $class = null): array
     {
         $gradingScale = $exam->gradingScale;
 
-        return self::rangesForFormat($exam->assessment_format ?? 'primary', $gradingScale);
+        // CHANGED: was `$exam->assessment_format ?? 'primary'` — now resolves 'auto' from class.
+        return self::rangesForFormat(self::resolveFormat($exam->assessment_format, $class), $gradingScale);
+    }
+
+    /**
+     * Resolve the effective assessment format.
+     * When the exam/setting format is 'auto' (or missing), derive it from the
+     * class category: primary classes => primary, S.1-S.4 => o-level, S.5-S.6 => a-level.
+     */
+    public static function resolveFormat(?string $format, ?SchoolClass $class = null): string
+    {
+        if (in_array($format, ['primary', 'o-level', 'a-level'], true)) {
+            return $format;
+        }
+
+        // 'auto' or unset: derive from the student's class when known.
+        if ($class) {
+            return self::formatForClass($class);
+        }
+
+        $settingFormat = setting('report_card_format', 'auto');
+
+        return in_array($settingFormat, ['primary', 'o-level', 'a-level'], true) ? $settingFormat : 'primary';
+    }
+
+    public static function formatForClass(SchoolClass $class): string
+    {
+        return match ($class->category()) {
+            'o_level' => 'o-level',
+            'a_level' => 'a-level',
+            default => 'primary',
+        };
     }
 
     public static function rangesForFormat(string $format, ?GradingScale $gradingScale = null): array
@@ -37,9 +71,10 @@ class AssessmentGradingService
         });
     }
 
-    public static function resolveForExam(Exam $exam, float $marks): array
+    // CHANGED: optional class so grades resolve against the class-appropriate scale when format is 'auto'.
+    public static function resolveForExam(Exam $exam, float $marks, ?SchoolClass $class = null): array
     {
-        return self::resolve($marks, self::rangesForExam($exam));
+        return self::resolve($marks, self::rangesForExam($exam, $class));
     }
 
     public static function resolve(float $marks, array $ranges): array
@@ -63,13 +98,21 @@ class AssessmentGradingService
         ];
     }
 
-    public static function previewRangesForExam(Exam $exam): array
+    // CHANGED: optional class so grade-entry previews match the class-appropriate scale when format is 'auto'.
+    public static function previewRangesForExam(Exam $exam, ?SchoolClass $class = null): array
     {
         return array_map(fn($range) => [
             'grade' => $range['grade'],
             'min' => (float) $range['min'],
             'max' => (float) $range['max'],
-        ], self::rangesForExam($exam));
+        ], self::rangesForExam($exam, $class));
+    }
+
+    // CHANGED (A5): public accessor so other services (UgandaGrading) resolve their
+    // boundaries from the SAME configurable source instead of hardcoding values.
+    public static function rangesForSetting(string $settingKey, array $fallback): array
+    {
+        return self::sortRanges(self::configuredRanges($settingKey, $fallback));
     }
 
     private static function configuredRanges(string $settingKey, array $fallback): array
@@ -124,11 +167,13 @@ class AssessmentGradingService
     private static function defaultOLevelRanges(): array
     {
         return [
-            ['grade' => 'A', 'min' => 80, 'max' => 100, 'points' => 1, 'description' => 'Excellent Competency'],
-            ['grade' => 'B', 'min' => 65, 'max' => 79.99, 'points' => 2, 'description' => 'Very Good Competency'],
-            ['grade' => 'C', 'min' => 50, 'max' => 64.99, 'points' => 3, 'description' => 'Satisfactory Competency'],
-            ['grade' => 'D', 'min' => 35, 'max' => 49.99, 'points' => 4, 'description' => 'Basic Competency'],
-            ['grade' => 'E', 'min' => 0, 'max' => 34.99, 'points' => 5, 'description' => 'Developing Competency'],
+            // CHANGED (A4): official UNEB/NCDC descriptors — was Excellent/Very Good/
+            // Satisfactory/Basic/Developing Competency.
+            ['grade' => 'A', 'min' => 80, 'max' => 100, 'points' => 1, 'description' => 'Exceptional'],
+            ['grade' => 'B', 'min' => 65, 'max' => 79.99, 'points' => 2, 'description' => 'Outstanding'],
+            ['grade' => 'C', 'min' => 50, 'max' => 64.99, 'points' => 3, 'description' => 'Satisfactory'],
+            ['grade' => 'D', 'min' => 35, 'max' => 49.99, 'points' => 4, 'description' => 'Basic'],
+            ['grade' => 'E', 'min' => 0, 'max' => 34.99, 'points' => 5, 'description' => 'Elementary'],
         ];
     }
 

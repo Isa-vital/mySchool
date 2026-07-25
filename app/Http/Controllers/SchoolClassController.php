@@ -13,7 +13,9 @@ class SchoolClassController extends Controller
 {
     public function index()
     {
-        $classes = SchoolClass::with('sections')->orderBy('level')->paginate(20);
+        // CHANGED: hide classes outside the configured school level (settings > School Level)
+        // $classes = SchoolClass::with('sections')->orderBy('level')->paginate(20);
+        $classes = SchoolClass::with('sections')->forSchoolLevel()->orderBy('level')->paginate(20);
         return view('classes.index', compact('classes'));
     }
 

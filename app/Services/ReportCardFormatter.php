@@ -3,12 +3,15 @@
 namespace App\Services;
 
 use App\Models\Exam;
+use App\Models\SchoolClass;
 use Illuminate\Support\Collection;
 
 class ReportCardFormatter
 {
     /**
      * Format report data based on assessment format.
+     * CHANGED: accepts the student's class so 'auto' format resolves per class
+     * (P.1-P.7 => primary, S.1-S.4 => o-level, S.5-S.6 => a-level).
      */
     public static function format(
         Exam $exam,
@@ -16,13 +19,15 @@ class ReportCardFormatter
         float $totalMarks,
         float $average,
         ?int $position,
-        ?int $classSize
+        ?int $classSize,
+        ?SchoolClass $schoolClass = null
     ): array {
-        return match ($exam->assessment_format) {
-            'primary' => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam),
-            'o-level' => self::formatOLevel($grades, $totalMarks, $average, $position, $classSize, $exam),
-            'a-level' => self::formatALevel($grades, $totalMarks, $average, $position, $classSize, $exam),
-            default => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam),
+        // CHANGED: was `match ($exam->assessment_format)` — now resolves 'auto' via the class.
+        return match (AssessmentGradingService::resolveFormat($exam->assessment_format, $schoolClass)) {
+            'primary' => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
+            'o-level' => self::formatOLevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
+            'a-level' => self::formatALevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
+            default => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
         };
     }
 
@@ -37,9 +42,10 @@ class ReportCardFormatter
         float $average,
         ?int $position,
         ?int $classSize,
-        Exam $exam
+        Exam $exam,
+        ?SchoolClass $schoolClass = null // CHANGED: class-aware ranges for 'auto' format
     ): array {
-        $ranges = AssessmentGradingService::rangesForExam($exam);
+        $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
 
         $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;
@@ -99,9 +105,10 @@ class ReportCardFormatter
         float $average,
         ?int $position,
         ?int $classSize,
-        Exam $exam
+        Exam $exam,
+        ?SchoolClass $schoolClass = null // CHANGED: class-aware ranges for 'auto' format
     ): array {
-        $ranges = AssessmentGradingService::rangesForExam($exam);
+        $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
 
         $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;
@@ -177,10 +184,11 @@ class ReportCardFormatter
         float $average,
         ?int $position,
         ?int $classSize,
-        Exam $exam
+        Exam $exam,
+        ?SchoolClass $schoolClass = null // CHANGED: class-aware ranges for 'auto' format
     ): array {
         $maxPoints = (int) setting('alevel_points_max', 20);
-        $ranges = AssessmentGradingService::rangesForExam($exam);
+        $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
 
         $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
             $marks = $grade->marks_obtained ?? 0;

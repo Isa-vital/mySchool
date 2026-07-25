@@ -77,4 +77,20 @@ class SchoolClass extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * CHANGED: limit classes to the school level chosen in settings so a
+     * secondary-only school never sees primary classes (and vice versa).
+     * primary => nursery + P.1-P.7 (level <= 7), secondary => S.1-S.6 (level >= 8).
+     */
+    public function scopeForSchoolLevel($query, ?string $schoolLevel = null)
+    {
+        $schoolLevel = $schoolLevel ?? setting('school_level', 'both');
+
+        return match ($schoolLevel) {
+            'primary' => $query->where('level', '<=', 7),
+            'secondary' => $query->where('level', '>=', 8),
+            default => $query,
+        };
+    }
 }

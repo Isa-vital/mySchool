@@ -67,18 +67,18 @@
         @if($formatted['format'] === 'primary')
         {{-- PRIMARY FORMAT: Marks + Achievement Levels with component breakdown --}}
         @php
-            // Dynamically collect exam names from report components (exams ticked to appear on report)
-            $hasComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
-            $componentNames = [];
-            if ($hasComponents) {
-                foreach ($formatted['subjects'] as $subject) {
-                    foreach ($subject['components'] ?? [] as $comp) {
-                        if (!in_array($comp['exam_name'], $componentNames)) {
-                            $componentNames[] = $comp['exam_name'];
-                        }
-                    }
-                }
-            }
+        // Dynamically collect exam names from report components (exams ticked to appear on report)
+        $hasComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
+        $componentNames = [];
+        if ($hasComponents) {
+        foreach ($formatted['subjects'] as $subject) {
+        foreach ($subject['components'] ?? [] as $comp) {
+        if (!in_array($comp['exam_name'], $componentNames)) {
+        $componentNames[] = $comp['exam_name'];
+        }
+        }
+        }
+        }
         @endphp
         @if($hasComponents)
         {{-- Show component breakdown for composite reports (dynamically from selected exams) --}}
@@ -100,7 +100,7 @@
                     <td class="px-4 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
                     @foreach($componentNames as $compName)
                     @php
-                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
                     @endphp
                     <td class="px-4 py-2 text-sm text-center">
                         @if($comp)
@@ -174,17 +174,17 @@
         @elseif($formatted['format'] === 'o-level')
         {{-- O-LEVEL FORMAT: Competency-based with descriptors --}}
         @php
-            $hasOLevelComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
-            $oLevelCompNames = [];
-            if ($hasOLevelComponents) {
-                foreach ($formatted['subjects'] as $subject) {
-                    foreach ($subject['components'] ?? [] as $comp) {
-                        if (!in_array($comp['exam_name'], $oLevelCompNames)) {
-                            $oLevelCompNames[] = $comp['exam_name'];
-                        }
-                    }
-                }
-            }
+        $hasOLevelComponents = collect($formatted['subjects'])->some(fn($s) => count($s['components'] ?? []) > 0);
+        $oLevelCompNames = [];
+        if ($hasOLevelComponents) {
+        foreach ($formatted['subjects'] as $subject) {
+        foreach ($subject['components'] ?? [] as $comp) {
+        if (!in_array($comp['exam_name'], $oLevelCompNames)) {
+        $oLevelCompNames[] = $comp['exam_name'];
+        }
+        }
+        }
+        }
         @endphp
         @if($hasOLevelComponents)
         {{-- Show O-Level component breakdown (multi-term competencies) --}}
@@ -206,7 +206,7 @@
                     <td class="px-4 py-2 text-gray-900 font-medium">{{ $subject['subject'] }}</td>
                     @foreach($oLevelCompNames as $compName)
                     @php
-                        $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
+                    $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
                     @endphp
                     <td class="px-4 py-2 text-center">
                         @if($comp)

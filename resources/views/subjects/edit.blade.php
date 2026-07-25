@@ -40,6 +40,30 @@
             </div>
         </div>
 
+        {{-- CHANGED (A6): weighted assessment components (e.g. Paper 1 theory 60 / Paper 2 practical 40).
+             Leave empty for a single-score subject. --}}
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+            <h3 class="text-sm font-semibold text-gray-800">Assessment Components (optional)</h3>
+            <p class="text-xs text-gray-500 mt-0.5 mb-4">For subjects marked in separate papers/practicals. Each component gets its own marks column at grade entry; the subject grade combines them by weight. Leave blank for one score per exam. Avoid removing components mid-term — entered scores stay but lose their component link.</p>
+            <div class="space-y-2">
+                @php $componentRows = old('components', $subject->components->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'weight' => (float) $c->weight, 'max_score' => (float) $c->max_score])->all()); @endphp
+                @foreach(array_pad($componentRows, count($componentRows) + 2, ['id' => '', 'name' => '', 'weight' => '', 'max_score' => '']) as $i => $row)
+                <div class="flex gap-3 items-center">
+                    <input type="hidden" name="components[{{ $i }}][id]" value="{{ $row['id'] ?? '' }}">
+                    <div class="flex-1">
+                        <input type="text" name="components[{{ $i }}][name]" value="{{ $row['name'] ?? '' }}" placeholder="e.g. Paper 1 (Theory)" class="w-full rounded-lg border-gray-300 text-sm">
+                    </div>
+                    <div class="w-28">
+                        <input type="number" step="0.01" min="0.01" name="components[{{ $i }}][weight]" value="{{ $row['weight'] ?? '' }}" placeholder="Weight" class="w-full rounded-lg border-gray-300 text-sm">
+                    </div>
+                    <div class="w-28">
+                        <input type="number" step="0.5" min="1" name="components[{{ $i }}][max_score]" value="{{ $row['max_score'] ?? '' }}" placeholder="Max /100" class="w-full rounded-lg border-gray-300 text-sm">
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+
         <div class="flex items-center justify-end space-x-3">
             <a href="{{ route('subjects.index') }}" class="px-6 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50">Cancel</a>
             <button type="submit" class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm" style="background: var(--primary-color);">Update Subject</button>

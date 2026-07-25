@@ -165,11 +165,16 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
         Route::get('exams/{exam}', [ExamController::class, 'show'])->name('exams.show')->whereNumber('exam');
     });
     Route::get('exams/create', [ExamController::class, 'create'])->name('exams.create')->middleware('permission:exams.create');
+    // CHANGED (UX): one-page term exam setup wizard
+    Route::get('exams/term-setup', [ExamController::class, 'termSetup'])->name('exams.term-setup')->middleware('permission:exams.create');
+    Route::post('exams/term-setup', [ExamController::class, 'storeTermSetup'])->name('exams.term-setup.store')->middleware('permission:exams.create');
     Route::post('exams', [ExamController::class, 'store'])->name('exams.store')->middleware('permission:exams.create');
     Route::get('exams/{exam}/edit', [ExamController::class, 'edit'])->name('exams.edit')->middleware('permission:exams.edit');
     Route::put('exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware('permission:exams.edit');
     Route::patch('exams/{exam}', [ExamController::class, 'update'])->middleware('permission:exams.edit');
     Route::post('exams/{exam}/publish', [ExamController::class, 'publish'])->name('exams.publish')->middleware('permission:exams.edit');
+    // CHANGED (A2): status workflow transitions (open/lock/unlock/unpublish)
+    Route::post('exams/{exam}/status', [ExamController::class, 'updateStatus'])->name('exams.status')->middleware('permission:exams.edit');
     Route::delete('exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware('permission:exams.delete');
     Route::post('exams/{exam}/schedules', [ExamController::class, 'addSchedule'])->name('exams.schedules.store')->middleware('permission:exams.edit');
     Route::delete('exam-schedules/{schedule}', [ExamController::class, 'removeSchedule'])->name('exam-schedules.destroy')->middleware('permission:exams.edit');
@@ -184,6 +189,13 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
 
     // Report Cards
     Route::get('report-cards', [ReportCardController::class, 'index'])->name('report-cards.index')->middleware('permission:report_cards.view');
+    // CHANGED (UX): bulk routes registered BEFORE report-cards/{student}/{exam} so the
+    // literal segments aren't swallowed by the wildcard route.
+    Route::get('report-cards/{exam}/bulk-comments', [ReportCardController::class, 'bulkComments'])->name('report-cards.bulk-comments')->middleware('permission:report_cards.edit');
+    Route::post('report-cards/{exam}/bulk-comments', [ReportCardController::class, 'saveBulkComments'])->name('report-cards.bulk-comments.save')->middleware('permission:report_cards.edit');
+    Route::get('report-cards/{exam}/bulk-pdf', [ReportCardController::class, 'bulkPdf'])->name('report-cards.bulk-pdf')->middleware('permission:report_cards.generate');
+    // CHANGED (A3): bulk PDF now runs on the queue; UI polls this for progress.
+    Route::get('report-cards/{exam}/bulk-pdf/status', [ReportCardController::class, 'bulkPdfStatus'])->name('report-cards.bulk-pdf.status')->middleware('permission:report_cards.generate');
     Route::get('report-cards/{student}/{exam}', [ReportCardController::class, 'show'])->name('report-cards.show')->middleware('permission:report_cards.view');
     // CHANGED: update endpoint now requires edit permission (not just view).
     // Route::put('report-cards/{student}/{exam}', [ReportCardController::class, 'update'])->name('report-cards.update')->middleware('permission:report_cards.view');
