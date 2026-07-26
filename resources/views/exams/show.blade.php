@@ -53,20 +53,8 @@
                 @endcan
                 @can('exams.edit')
                 {{-- CHANGED (A2): publish only offered when the exam is LOCKED --}}
-                {{-- CHANGED (permanent formatter fix): all dynamic values live in data
-                     attributes (formatters never touch attribute values); the script below
-                     is 100% static JS. A formatter previously split the route() echo across
-                     lines inside the script, fatally breaking this page. --}}
                 @if($exam->status === 'locked')
-                @php
-                $pendingForPublish = collect($completeness ?? [])->flatMap(fn($row) => $row['cells'])->reject(fn($c) => $c['complete'])->count();
-                $gradedStudentCount = $exam->grades->pluck('student_id')->unique()->count();
-                @endphp
-                <button type="button" id="publish-exam-btn"
-                    data-publish-url="{{ route('exams.publish', $exam) }}"
-                    data-pending="{{ (int) $pendingForPublish }}"
-                    data-students="{{ (int) $gradedStudentCount }}"
-                    class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-amber-500 hover:bg-amber-600">Publish</button>
+                <button type="button" id="publish-exam-btn" class="px-4 py-2 text-sm font-medium text-white rounded-lg bg-amber-500 hover:bg-amber-600">Publish</button>
                 @endif
                 <a href="{{ route('exams.edit', $exam) }}" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background-color: var(--primary-color);">Edit</a>
                 @endcan
@@ -335,36 +323,44 @@
 
     {{-- CHANGED (UX): publish confirmation — warns about pending marks and confirms before guardian emails go out --}}
     {{-- CHANGED (A2): only rendered when the exam is locked (publishing requires locked). --}}
-    {{-- CHANGED (permanent formatter fix): this script is 100% static JS — every dynamic
-         value comes from data attributes on #publish-exam-btn. A formatter previously
-         mangled the Blade echoes that lived in here and fatally broke the page.
-         KEEP PHP/BLADE EXPRESSIONS OUT OF THIS BLOCK. --}}
     @can('exams.edit')
     @if($exam->status === 'locked')
+    @php
+    $pendingForPublish = collect($completeness ?? [])->flatMap(fn($row) => $row['cells'])->reject(fn($c) => $c['complete'])->count();
+    $gradedStudentCount = $exam->grades->pluck('student_id')->unique()->count();
+    @endphp
     <script>
-        document.getElementById('publish-exam-btn')?.addEventListener('click', function () {
-            const btn = this;
-            const pending = parseInt(btn.dataset.pending || '0', 10);
-            const students = parseInt(btn.dataset.students || '0', 10);
+        document.getElementById('publish-exam-btn')?.addEventListener('click', function() {
+            const pending = {
+                {
+                    (int) $pendingForPublish
+                }
+            };
+            const students = {
+                {
+                    (int) $gradedStudentCount
+                }
+            };
             Swal.fire({
                 title: 'Publish results?',
-                html: (pending > 0
-                        ? '<p class="text-amber-600 font-medium mb-2">⚠ ' + pending + ' subject(s) still have missing marks.</p>'
-                        : '<p class="text-green-600 font-medium mb-2">All marks are entered.</p>')
-                    + '<p>Guardians of ' + students + ' graded student(s) will be emailed immediately.</p>',
+                html: (pending > 0 ?
+                        '<p class="text-amber-600 font-medium mb-2">⚠ ' + pending + ' subject(s) still have missing marks.</p>' :
+                        '<p class="text-green-600 font-medium mb-2">All marks are entered.</p>') +
+                    '<p>Guardians of ' + students + ' graded student(s) will be emailed immediately.</p>',
                 icon: pending > 0 ? 'warning' : 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Publish & notify',
                 cancelButtonText: 'Not yet',
             }).then((result) => {
                 if (!result.isConfirmed) return;
-                fetch(btn.dataset.publishUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                        'Accept': 'application/json',
-                    },
-                }).then(r => r.json()).then(data => {
+                fetch('{{ route('
+                    exams.publish ', $exam) }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            'Accept': 'application/json',
+                        },
+                    }).then(r => r.json()).then(data => {
                     Swal.fire({
                             title: data.success ? 'Published' : 'Not published',
                             text: data.message,

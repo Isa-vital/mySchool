@@ -18,7 +18,7 @@
                         <select name="student_id" x-model="studentId" @change="fetchInvoices()" class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500" required>
                             <option value="">Select Student</option>
                             @foreach($students as $student)
-                                <option value="{{ $student->id }}" {{ old('student_id', $selectedStudentId) == $student->id ? 'selected' : '' }}>{{ $student->full_name }} ({{ $student->admission_number }})</option>
+                            <option value="{{ $student->id }}" {{ old('student_id', $selectedStudentId) == $student->id ? 'selected' : '' }}>{{ $student->full_name }} ({{ $student->admission_number }})</option>
                             @endforeach
                         </select>
                         @error('student_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -30,7 +30,7 @@
                         <select name="invoice_id" class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">No specific invoice</option>
                             @foreach($invoices as $inv)
-                                <option value="{{ $inv->id }}" {{ old('invoice_id', request('invoice_id')) == $inv->id ? 'selected' : '' }}>{{ $inv->invoice_number }} — Bal: {{ setting('currency_symbol', 'UGX') }} {{ number_format($inv->balance) }}</option>
+                            <option value="{{ $inv->id }}" {{ old('invoice_id', request('invoice_id')) == $inv->id ? 'selected' : '' }}>{{ $inv->invoice_number }} — Bal: {{ setting('currency_symbol', 'UGX') }} {{ number_format($inv->balance) }}</option>
                             @endforeach
                         </select>
                         @error('invoice_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -49,7 +49,7 @@
                         <select name="payment_method" class="w-full rounded-lg border-gray-300 text-sm" required>
                             <option value="">Select</option>
                             @foreach(['cash', 'bank_transfer', 'mobile_money', 'cheque'] as $method)
-                                <option value="{{ $method }}" {{ old('payment_method') == $method ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $method)) }}</option>
+                            <option value="{{ $method }}" {{ old('payment_method') == $method ? 'selected' : '' }}>{{ ucwords(str_replace('_', ' ', $method)) }}</option>
                             @endforeach
                         </select>
                         @error('payment_method') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror

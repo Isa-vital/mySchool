@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-{{-- CHANGED: theme colour CSS variables are now set via the style ATTRIBUTE on <html> (the <html> element IS :root).
-     Formatters never reformat attribute values, so this cannot be mangled again. --}}
+
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" style="--primary-color: {{ setting('primary_color', '#1e40af') }}; --secondary-color: {{ setting('secondary_color', '#7c3aed') }};">
 
 <head>
@@ -36,10 +35,7 @@
     <!-- SweetAlert2 (for success / error notifications) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- CHANGED (permanent fix): removed the :root <style> block entirely. CSS/HTML formatters kept
-         mangling the Blade braces inside it (turning them into invalid CSS), so colour changes in
-         Settings never applied. The --primary-color / --secondary-color variables are now set via the
-         style attribute on the <html> tag above, which formatters never touch. --}}
+
 </head>
 
 <body class="font-sans antialiased" x-data="{ sidebarOpen: true, mobileSidebarOpen: false }">
@@ -61,9 +57,7 @@
             </header>
             @endisset
 
-            {{-- Flash Messages (rendered via SweetAlert2) --}}
-            {{-- CHANGED: replaced inline Alpine flash banners with SweetAlert2 toast/modal notifications.
-                 Flash payload is passed via a data element to keep PHP out of the JS block. --}}
+
             @if(session('success') || session('error') || $errors->any())
             <div id="flash-data"
                 data-success="{{ session('success') }}"

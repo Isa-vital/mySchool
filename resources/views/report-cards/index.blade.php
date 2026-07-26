@@ -74,29 +74,18 @@
             <span id="bulk-pdf-label">Generate All PDFs ({{ $students->count() }})</span>
         </button>
         <script>
-            document.getElementById('bulk-pdf-btn').addEventListener('click', function() {
+            document.getElementById('bulk-pdf-btn').addEventListener('click', function () {
                 const btn = this;
                 const label = document.getElementById('bulk-pdf-label');
                 btn.disabled = true;
                 label.textContent = 'Starting…';
-                const reset = () => {
-                    btn.disabled = false;
-                    label.textContent = 'Generate All PDFs';
-                };
-                fetch(btn.dataset.startUrl, {
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    })
+                const reset = () => { btn.disabled = false; label.textContent = 'Generate All PDFs'; };
+                fetch(btn.dataset.startUrl, { headers: { 'Accept': 'application/json' } })
                     .then(r => r.json())
                     .then(data => {
                         if (!data.success) throw new Error(data.message || 'Could not start generation');
                         const poll = setInterval(() => {
-                            fetch(data.status_url, {
-                                    headers: {
-                                        'Accept': 'application/json'
-                                    }
-                                })
+                            fetch(data.status_url, { headers: { 'Accept': 'application/json' } })
                                 .then(r => r.json())
                                 .then(s => {
                                     if (s.status === 'running' || s.status === 'pending') {
@@ -109,23 +98,12 @@
                                     } else if (s.status === 'failed') {
                                         clearInterval(poll);
                                         reset();
-                                        Swal.fire({
-                                            title: 'Generation failed',
-                                            text: s.message || 'Is the queue worker running? (php artisan queue:work)',
-                                            icon: 'error'
-                                        });
+                                        Swal.fire({ title: 'Generation failed', text: s.message || 'Is the queue worker running? (php artisan queue:work)', icon: 'error' });
                                     }
                                 });
                         }, 2000);
                     })
-                    .catch(err => {
-                        reset();
-                        Swal.fire({
-                            title: 'Error',
-                            text: err.message,
-                            icon: 'error'
-                        });
-                    });
+                    .catch(err => { reset(); Swal.fire({ title: 'Error', text: err.message, icon: 'error' }); });
             });
         </script>
         @endcan

@@ -318,10 +318,10 @@ return [
 
                 Swal.fire({
                     title: preActions.length ? 'Lock marks & publish?' : 'Publish this exam?',
-                    html: (preActions.length
-                            ? '<p class="mb-2">Marks entry will be <b>locked</b> (a moderator must unlock to change marks).</p>'
-                            : '')
-                        + 'Guardians will receive an email with the exam results. <b>This cannot be undone easily.</b>',
+                    html: (preActions.length ?
+                            '<p class="mb-2">Marks entry will be <b>locked</b> (a moderator must unlock to change marks).</p>' :
+                            '') +
+                        'Guardians will receive an email with the exam results. <b>This cannot be undone easily.</b>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonText: preActions.length ? 'Lock & publish' : 'Yes, publish',

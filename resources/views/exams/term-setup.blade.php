@@ -79,10 +79,18 @@
         const setsList = document.getElementById('sets-list');
         const termSelect = document.getElementById('term-select');
         const reportNameInput = document.getElementById('report-name-input');
-        const defaultSets = [
-            { name: 'Beginning of Term', weight: 20 },
-            { name: 'Mid Term', weight: 30 },
-            { name: 'End of Term', weight: 50 },
+        const defaultSets = [{
+                name: 'Beginning of Term',
+                weight: 20
+            },
+            {
+                name: 'Mid Term',
+                weight: 30
+            },
+            {
+                name: 'End of Term',
+                weight: 50
+            },
         ];
         let rowCount = 0;
 

@@ -101,37 +101,7 @@ class ExamController extends Controller
         $classes = SchoolClass::active()->orderBy('level')->get();
         $currentTerm = Term::current();
 
-        // CHANGED (QA fix): the wizard matches exams BY NAME, so the form prefills each
-        // term's EXISTING exams (e.g. BOT/MOT/EOT) instead of static defaults — otherwise
-        // submitting would silently create empty duplicates and link the report card to
-        // exams that have no marks.
-        $reportsByTerm = Exam::where('is_report_card', true)->with('reportComponents')->get()->groupBy('term_id');
-
-        $componentWeights = [];
-        foreach ($reportsByTerm as $termId => $reports) {
-            foreach ($reports->first()->reportComponents as $component) {
-                $componentWeights[$termId][$component->id] = (float) $component->pivot->weight;
-            }
-        }
-
-        $termPrefillData = Exam::where('is_report_card', false)
-            ->orderBy('created_at')
-            ->get()
-            ->groupBy('term_id')
-            ->map(function ($exams, $termId) use ($componentWeights, $reportsByTerm) {
-                return [
-                    'sets' => $exams->map(fn($e) => [
-                        'name' => $e->name,
-                        'weight' => $componentWeights[$termId][$e->id] ?? '',
-                    ])->values(),
-                    'report_name' => $reportsByTerm->get($termId)?->first()?->name,
-                ];
-            });
-
-        // Old input (after a validation failure) wins over the prefill.
-        $oldSetsData = collect(old('sets', []))->values();
-
-        return view('exams.term-setup', compact('academicYears', 'classes', 'currentTerm', 'termPrefillData', 'oldSetsData'));
+        return view('exams.term-setup', compact('academicYears', 'classes', 'currentTerm'));
     }
 
     public function storeTermSetup(Request $request)
@@ -146,12 +116,6 @@ class ExamController extends Controller
             'class_ids' => 'nullable|array',
             'class_ids.*' => 'integer',
         ]);
-
-        // CHANGED (QA fix): all-blank set names previously "succeeded" with a confusing
-        // "0 exam set(s) ready" — now it's a proper validation error.
-        if (collect($validated['sets'])->filter(fn($s) => trim((string) ($s['name'] ?? '')) !== '')->isEmpty()) {
-            return back()->withInput()->withErrors(['sets' => 'Name at least one exam set.']);
-        }
 
         $term = Term::findOrFail($validated['term_id']);
 
@@ -370,13 +334,6 @@ class ExamController extends Controller
         $transitions = Exam::statusTransitions();
         $transition = $transitions[$validated['action']] ?? null;
         abort_if($transition === null, 422, 'Unknown status action.');
-
-        // CHANGED (bugfix): idempotent — a stale page retrying a transition that already
-        // happened (e.g. lock succeeded but the follow-up publish was interrupted) gets a
-        // friendly no-op instead of a 422.
-        if ($exam->status === $transition['to']) {
-            return redirect()->route('exams.show', $exam)->with('success', 'Exam is already "' . str_replace('_', ' ', $transition['to']) . '".');
-        }
 
         abort_unless($exam->status === $transition['from'], 422, "This exam is '{$exam->status}' — cannot {$validated['action']} from that state.");
 
