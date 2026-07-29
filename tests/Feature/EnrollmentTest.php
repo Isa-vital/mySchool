@@ -79,9 +79,15 @@ class EnrollmentTest extends TestCase
         ]);
 
         $response->assertRedirect();
+        // CHANGED (tests): admission numbers are auto-generated server-side (ADM00001...);
+        // the posted value is a read-only preview and is ignored.
+        // $this->assertDatabaseHas('students', [
+        //     'admission_number' => 'STU-002',
+        //     'first_name' => 'Bob',
+        // ]);
         $this->assertDatabaseHas('students', [
-            'admission_number' => 'STU-002',
             'first_name' => 'Bob',
+            'last_name' => 'Kato',
         ]);
     }
 

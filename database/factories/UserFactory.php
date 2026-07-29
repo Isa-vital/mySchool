@@ -29,7 +29,21 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // CHANGED (tests): factory users are approved by default — the 'approved'
+            // middleware otherwise 302-redirects every authenticated test request
+            // to approval.pending, which broke 25+ feature tests.
+            'is_approved' => true,
         ];
+    }
+
+    /**
+     * Indicate that the user has not yet been approved by an admin.
+     */
+    public function unapproved(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_approved' => false,
+        ]);
     }
 
     /**

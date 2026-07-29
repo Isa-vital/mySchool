@@ -127,7 +127,10 @@ class PaymentTest extends TestCase
 
         $payment = Payment::first();
         $this->assertNotNull($payment);
-        $this->assertStringStartsWith('RCP-', $payment->receipt_number);
+        // CHANGED (tests): receipt numbers use the configurable receipt_prefix setting
+        // (default 'RCT'), e.g. RCT000001 — not the old hardcoded 'RCP-'.
+        // $this->assertStringStartsWith('RCP-', $payment->receipt_number);
+        $this->assertStringStartsWith(setting('receipt_prefix', 'RCT'), $payment->receipt_number);
     }
 
     public function test_full_payment_marks_invoice_as_paid(): void

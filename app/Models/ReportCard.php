@@ -19,6 +19,7 @@ class ReportCard extends Model
         'class_teacher_comment',
         'head_teacher_comment',
         'next_term_begins',
+        'verification_code',
     ];
 
     protected $casts = [

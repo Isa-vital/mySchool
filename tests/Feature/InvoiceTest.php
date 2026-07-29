@@ -113,7 +113,10 @@ class InvoiceTest extends TestCase
 
         $invoice = Invoice::first();
         $this->assertNotNull($invoice);
-        $this->assertStringStartsWith('INV-', $invoice->invoice_number);
+        // CHANGED (tests): invoice numbers use the configurable invoice_prefix setting
+        // (default 'INV'), e.g. INV000001 — not the old hardcoded 'INV-'.
+        // $this->assertStringStartsWith('INV-', $invoice->invoice_number);
+        $this->assertStringStartsWith(setting('invoice_prefix', 'INV'), $invoice->invoice_number);
     }
 
     public function test_invoice_recalculates_on_payment(): void

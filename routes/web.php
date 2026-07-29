@@ -44,6 +44,12 @@ Route::post('/demo-request', [DemoRequestController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('demo.request');
 
+// CHANGED (verification): public report-card verification — printed reports carry a
+// QR/serial that resolves here. Read-only, rate-limited, no login required.
+Route::get('/verify/{code}', [App\Http\Controllers\ReportVerificationController::class, 'show'])
+    ->middleware('throttle:10,1')
+    ->name('report.verify');
+
 // Pending approval page (auth required, but no approval needed)
 Route::middleware(['auth', 'verified'])->get('/approval/pending', function () {
     if (auth()->user()->is_approved) {

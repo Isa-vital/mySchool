@@ -233,6 +233,42 @@ $oLevelCompNames[] = $comp['exam_name'];
     @endif
 </div>
 
+{{-- CHANGED (legend): grading key so the report is self-explanatory. Ranges come from
+     the same configurable grading scales used to grade the marks (single source of truth). --}}
+@if(!empty($gradingKey ?? []))
+<table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:8px;">
+    <thead>
+        <tr>
+            <th colspan="{{ count($gradingKey) }}" style="text-align:left; padding:3px 5px; background:#f3f4f6; border:1px solid #e5e7eb; font-size:8.5px;">Grading Key</th>
+        </tr>
+        <tr>
+            @foreach($gradingKey as $band)
+            <th style="padding:2px 4px; border:1px solid #e5e7eb; background:#fafafa;">{{ $band['grade'] }}</th>
+            @endforeach
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            @foreach($gradingKey as $band)
+            <td style="padding:2px 4px; border:1px solid #e5e7eb; text-align:center;">
+                {{ rtrim(rtrim(number_format((float) $band['min'], 1), '0'), '.') }}&ndash;{{ rtrim(rtrim(number_format((float) $band['max'], 1), '0'), '.') }}%
+                @if(isset($band['points']) && $band['points'] !== null)
+                <br>{{ rtrim(rtrim(number_format((float) $band['points'], 1), '0'), '.') }} pts
+                @endif
+            </td>
+            @endforeach
+        </tr>
+        @if(collect($gradingKey)->contains(fn($b) => !empty($b['description']) && $b['description'] !== $b['grade']))
+        <tr>
+            @foreach($gradingKey as $band)
+            <td style="padding:2px 4px; border:1px solid #e5e7eb; text-align:center; color:#4b5563;">{{ $band['description'] ?? '' }}</td>
+            @endforeach
+        </tr>
+        @endif
+    </tbody>
+</table>
+@endif
+
 <div class="footer">
     <div class="sig-block">
         <div class="sig-line"></div>
@@ -247,3 +283,21 @@ $oLevelCompNames[] = $comp['exam_name'];
         <div class="sig-label">Parent / Guardian</div>
     </div>
 </div>
+
+{{-- CHANGED (verification): QR + serial linking to the public /verify page (anti-forgery).
+     The SVG string is prepared server-side so this template stays formatter-safe. --}}
+@if(!empty($verificationCode ?? null))
+<table style="width:100%; margin-top:10px; border-top:1px solid #e5e7eb; border-collapse:collapse;">
+    <tr>
+        @if(!empty($verificationQr ?? null))
+        <td style="width:70px; padding:6px 8px 0 0; vertical-align:top;">{!! $verificationQr !!}</td>
+        @endif
+        <td style="padding-top:6px; vertical-align:top; font-size:8px; color:#6b7280;">
+            <strong style="color:#111827;">Verify this report:</strong> scan the QR code or visit
+            {{ route('report.verify', $verificationCode) }}<br>
+            Serial: <span style="font-family:monospace; letter-spacing:1px;">{{ $verificationCode }}</span> &mdash;
+            details shown online must match this printed report exactly.
+        </td>
+    </tr>
+</table>
+@endif

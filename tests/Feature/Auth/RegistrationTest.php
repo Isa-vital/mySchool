@@ -18,6 +18,9 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        // CHANGED (tests): registration assigns the Teacher role, so roles must exist.
+        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
@@ -26,6 +29,9 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        // CHANGED (tests): new users now land on email verification (then admin
+        // approval), not the dashboard.
+        // $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('verification.notice', absolute: false));
     }
 }

@@ -7,13 +7,6 @@
     </x-slot>
 
     {{-- Class & Subject Selector --}}
-    {{-- CHANGED (A2 follow-up): show a clear banner when the exam no longer accepts marks --}}
-    @if($exam && ! $exam->acceptsMarks())
-    <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 text-sm text-orange-800">
-        <strong>{{ ucwords(str_replace('_', ' ', $exam->status)) }}:</strong> marks for this exam are read-only.
-        @can('exams.moderate') A moderator can unlock it from the <a href="{{ route('exams.show', $exam) }}" class="underline font-medium">exam page</a>. @endcan
-    </div>
-    @endif
     <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
         <form method="GET" action="{{ route('grades.enter', $exam) }}" class="flex flex-wrap gap-4 items-end">
             <div class="w-48">

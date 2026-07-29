@@ -23,4 +23,28 @@ class StorePaymentRequest extends FormRequest
             'notes' => 'nullable|string|max:2000',
         ];
     }
+
+    // CHANGED (payments): reject overpayment — a payment linked to an invoice must
+    // not exceed the invoice's outstanding balance.
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (! $this->invoice_id || $validator->errors()->has('amount')) {
+                return;
+            }
+
+            $invoice = \App\Models\Invoice::find($this->invoice_id);
+            if (! $invoice) {
+                return;
+            }
+
+            $balance = (float) $invoice->total_amount - (float) $invoice->amount_paid;
+            if ((float) $this->amount > $balance) {
+                $validator->errors()->add(
+                    'amount',
+                    'The payment amount exceeds the outstanding invoice balance of ' . number_format($balance, 2) . '.'
+                );
+            }
+        });
+    }
 }
