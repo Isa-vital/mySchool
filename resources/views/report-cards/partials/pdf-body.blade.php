@@ -44,8 +44,10 @@ $brandColor = setting('primary_color', '#1e40af');
             <span class="value">{{ $student->full_name ?? $student->first_name . ' ' . $student->last_name }}</span>
         </div>
         <div class="info-cell">
-            <span class="label">Admission No:</span>
-            <span class="value">{{ $student->admission_number ?? '-' }}</span>
+            {{-- CHANGED: show the EMIS Learner Identification Number; fall back to the
+                 internal admission number for students without a LIN yet. --}}
+            <span class="label">{{ $student->lin ? 'LIN:' : 'Admission No:' }}</span>
+            <span class="value">{{ $student->lin ?: ($student->admission_number ?? '-') }}</span>
         </div>
     </div>
     <div class="info-row">

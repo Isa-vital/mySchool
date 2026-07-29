@@ -39,7 +39,7 @@
                             <td class="px-4 py-3 text-sm text-gray-500">{{ $i + 1 }}</td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                                 {{ $student->full_name ?? $student->first_name . ' ' . $student->last_name }}
-                                <p class="text-xs text-gray-400 font-normal">{{ $student->admission_number }}</p>
+                                <p class="text-xs text-gray-400 font-normal">{{ $student->lin ?: $student->admission_number }}</p>
                             </td>
                             <td class="px-4 py-3">
                                 <input type="text" name="rows[{{ $student->id }}][conduct]" value="{{ old('rows.' . $student->id . '.conduct', $card?->conduct) }}" maxlength="100" placeholder="e.g. Good" class="w-full rounded-lg border-gray-300 text-sm">

@@ -111,7 +111,7 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-3 text-sm text-gray-500">{{ $i + 1 }}</td>
                     <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $student->full_name }}</td>
-                    <td class="px-6 py-3 text-sm text-gray-600">{{ $student->admission_number }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-600">{{ $student->lin ?: $student->admission_number }}</td>
                     <td class="px-6 py-3 text-right text-sm">
                         @if(isset($selectedExam) && $selectedExam)
                         <a href="{{ route('report-cards.show', ['student' => $student->id, 'exam' => $selectedExam->id, 'class_id' => request('class_id'), 'term_id' => request('term_id')]) }}" class="text-blue-600 hover:text-blue-800 mr-3">View</a>

@@ -131,18 +131,30 @@ class ReportCardDataService
         ];
     }
 
-    // CHANGED (verification): render the /verify/{code} URL as an inline SVG QR
-    // (bacon-qr-code, pure PHP — no GD/Imagick). Returned without the XML prolog
-    // so it can be embedded directly in the PDF body.
+    // CHANGED (verification): render the /verify/{code} URL as a QR image.
+    // GD PNG (data URI) is preferred - DomPDF renders raster images reliably on any
+    // server. Falls back to inline SVG (needs ext-xmlwriter) when GD is unavailable.
     public static function verificationQrSvg(?string $code): ?string
     {
         if (! $code) {
             return null;
         }
 
+        $url = route('report.verify', $code);
+
+        if (extension_loaded('gd')) {
+            try {
+                $png = (new Writer(new \BaconQrCode\Renderer\GDLibRenderer(180)))->writeString($url);
+
+                return '<img src="data:image/png;base64,' . base64_encode($png) . '" style="width:70px; height:70px;" alt="Verification QR">';
+            } catch (\Throwable $e) {
+                // fall through to SVG
+            }
+        }
+
         try {
             $renderer = new ImageRenderer(new RendererStyle(90, 0), new SvgImageBackEnd());
-            $svg = (new Writer($renderer))->writeString(route('report.verify', $code));
+            $svg = (new Writer($renderer))->writeString($url);
 
             return preg_replace('/^<\?xml.*?\?>\s*/s', '', $svg);
         } catch (\Throwable $e) {

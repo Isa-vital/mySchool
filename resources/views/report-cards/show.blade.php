@@ -38,7 +38,7 @@
         {{-- Student Info --}}
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
             <div><span class="text-gray-500">Name:</span> <strong>{{ $student->full_name }}</strong></div>
-            <div><span class="text-gray-500">Admission No:</span> <strong>{{ $student->admission_number }}</strong></div>
+            <div><span class="text-gray-500">{{ $student->lin ? 'LIN:' : 'Admission No:' }}</span> <strong>{{ $student->lin ?: $student->admission_number }}</strong></div>
             <div><span class="text-gray-500">Class:</span> <strong>{{ $enrollment->schoolClass->name ?? '-' }}</strong></div>
             <div><span class="text-gray-500">Section:</span> <strong>{{ $enrollment->section->name ?? '-' }}</strong></div>
             <div><span class="text-gray-500">Boarding Status:</span> <strong>{{ ucfirst($student->boarding_status ?? 'day') }}</strong></div>
