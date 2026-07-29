@@ -4,6 +4,9 @@
     </x-slot>
 
     <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
+        {{-- CHANGED (UI fix): the Term field was un-wrapped and a stray closing div sat
+             before the Load button, breaking the page nesting (giant buttons, shifted
+             content). Every field now lives in its own fixed-width wrapper. --}}
         <form method="GET" class="flex flex-wrap gap-4 items-end">
             <div class="w-48">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
@@ -14,39 +17,23 @@
                     @endforeach
                 </select>
             </div>
-            {{-- CHANGED: replaced Exam selector with Term selector as requested. --}}
-            {{--
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Exam</label>
-                    <select name="exam_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
-                        <option value="">Select Exam</option>
-                        @foreach($exams as $exam)
-                        <option value="{{ $exam->id }}" {{ request('exam_id') == $exam->id ? 'selected' : '' }}>
-            {{ $exam->name }}
-            @if($exam->is_report_card)
-            (Report)
-            @elseif(!$exam->is_published)
-            (Draft)
-            @endif
-            </option>
-            @endforeach
-            </select>
-            --}}
-            <label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
-            <select name="term_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
-                <option value="">Select Term</option>
-                @foreach($terms as $term)
-                {{-- CHANGED (UX): defaults to the current term ($selectedTermId from controller) --}}
-                <option value="{{ $term->id }}" {{ (string) ($selectedTermId ?? '') === (string) $term->id ? 'selected' : '' }}>
-                    {{ $term->name }}
-                    @if($term->academicYear)
-                    ({{ $term->academicYear->name }})
-                    @endif
-                </option>
-                @endforeach
-            </select>
-    </div>
-    <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background: var(--primary-color);">Load</button>
-    </form>
+            <div class="w-64">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Term</label>
+                <select name="term_id" onchange="this.form.submit()" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    <option value="">Select Term</option>
+                    @foreach($terms as $term)
+                    {{-- CHANGED (UX): defaults to the current term ($selectedTermId from controller) --}}
+                    <option value="{{ $term->id }}" {{ (string) ($selectedTermId ?? '') === (string) $term->id ? 'selected' : '' }}>
+                        {{ $term->name }}
+                        @if($term->academicYear)
+                        ({{ $term->academicYear->name }})
+                        @endif
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background: var(--primary-color);">Load</button>
+        </form>
     </div>
 
     @if(isset($students) && $students->count())
