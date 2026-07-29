@@ -127,6 +127,16 @@ class SettingController extends Controller
                 ]);
             }
         }
+
+        // CHANGED (bugfix): the loop above only manages the standard P.1-P.7/S.1-S.6
+        // classes, so nursery (Baby/Middle/Top, level <= 0) and custom classes stayed
+        // active for secondary-only schools. Apply the same level rule to ALL classes:
+        // primary keeps nursery + P.1-P.7 (level <= 7), secondary keeps S.1-S.6 (level >= 8).
+        if ($schoolLevel === 'secondary') {
+            SchoolClass::where('level', '<', 8)->update(['is_active' => false]);
+        } elseif ($schoolLevel === 'primary') {
+            SchoolClass::where('level', '>=', 8)->update(['is_active' => false]);
+        }
     }
 
     protected function validateJsonScaleSetting(string $key, mixed $value): void
