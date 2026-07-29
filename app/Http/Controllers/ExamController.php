@@ -101,7 +101,36 @@ class ExamController extends Controller
         $classes = SchoolClass::active()->orderBy('level')->get();
         $currentTerm = Term::current();
 
-        return view('exams.term-setup', compact('academicYears', 'classes', 'currentTerm'));
+        // CHANGED (hotfix): the view's prefill script expects these; they were never
+        // passed, causing a production 500 (undefined $termPrefillData).
+        // Map: term_id => { sets: [{name, weight}], report_name } from that term's exams.
+        $termPrefillData = [];
+        $termExams = Exam::whereNotNull('term_id')
+            ->with(['reportComponents' => fn($q) => $q->orderBy('exam_report_components.display_order')])
+            ->orderBy('start_date')
+            ->get();
+
+        foreach ($termExams->groupBy('term_id') as $termId => $exams) {
+            $report = $exams->firstWhere('is_report_card', true);
+            $components = $report
+                ? $report->reportComponents
+                : $exams->where('is_report_card', false)->values();
+
+            $termPrefillData[$termId] = [
+                'sets' => $components->map(fn($e) => [
+                    'name' => $e->name,
+                    'weight' => $e->pivot->weight ?? null,
+                ])->values()->all(),
+                'report_name' => $report?->name,
+            ];
+        }
+
+        $oldSetsData = collect(old('sets', []))->map(fn($s) => [
+            'name' => $s['name'] ?? '',
+            'weight' => $s['weight'] ?? '',
+        ])->values()->all();
+
+        return view('exams.term-setup', compact('academicYears', 'classes', 'currentTerm', 'termPrefillData', 'oldSetsData'));
     }
 
     public function storeTermSetup(Request $request)

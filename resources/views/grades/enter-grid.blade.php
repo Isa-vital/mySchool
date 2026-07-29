@@ -176,29 +176,24 @@
     </div>
     @endif
 
+    {{-- CHANGED (hotfix): the PHP payload block was previously INSIDE the script tag and
+         got formatter-corrupted (broken namespace + arrow), causing a production 500.
+         PHP now runs outside the script; the script only receives ready JSON.
+         NOTE: never write Blade directive names literally in comments - the compiler
+         extracts raw blocks before stripping comments and corrupts the file. --}}
+    @php
+    $gradingRangesPayload = collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))
+        ->map(function ($r) {
+            return [
+                'grade' => $r['grade'],
+                'min' => (float) $r['min'],
+                'max' => (float) $r['max'],
+            ];
+        })
+        ->values();
+    @endphp
     <script>
-        @php
-        $gradingRangesPayload = collect(\App\ Services\ AssessmentGradingService::rangesForExam($reportExam)) -
-            > map(function($r) {
-                return [
-                    'grade' => $r['grade'],
-                    'min' => (float) $r['min'],
-                    'max' => (float) $r['max'],
-                ];
-            }) -
-            > values();
-        @endphp
-
         // Grading ranges from server for live grade preview
-        // CHANGED: simplified payload rendering to prevent Blade parser mismatch in production.
-        // CHANGED: previous inline expression preserved for reference.
-        // const gradingRanges = @json(
-        //     collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))->map(fn($r) => [
-        //         'grade' => $r['grade'],
-        //         'min'   => (float) $r['min'],
-        //         'max'   => (float) $r['max'],
-        //     ])->values()
-        // );
         const gradingRanges = @json($gradingRangesPayload);
 
         function resolveGrade(pct) {
