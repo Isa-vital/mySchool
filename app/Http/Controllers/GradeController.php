@@ -77,6 +77,7 @@ class GradeController extends Controller
         $gridGrades    = [];   // [student_id][exam_id] => marks
         $fullMarks     = [];   // [exam_id] => full_marks
         $schedules     = collect();
+        $noCombinationCount = 0;
 
         if ($selectedClassId) {
             $class    = SchoolClass::find($selectedClassId);
@@ -96,8 +97,12 @@ class GradeController extends Controller
                 ->where('school_class_id', $selectedClassId)
                 ->where('academic_year_id', $reportExam->academic_year_id)
                 ->where('status', 'active')
+                ->takingSubject($class, $selectedSubjectId)
                 ->get();
             $students = $enrollments->pluck('student')->filter()->values();
+            $noCombinationCount = $class && $class->category() === 'a_level'
+                ? $enrollments->whereNull('subject_combination_id')->count()
+                : 0;
 
             if ($selectedSubjectId) {
                 $subject = Subject::find($selectedSubjectId);
@@ -138,7 +143,8 @@ class GradeController extends Controller
             'selectedSubjectId',
             'gridGrades',
             'fullMarks',
-            'weightTotal'
+            'weightTotal',
+            'noCombinationCount'
         ));
     }
 
@@ -229,6 +235,7 @@ class GradeController extends Controller
         $fullMarks = 100;
         $passMarks = 40;
         $class = null;
+        $noCombinationCount = 0;
 
         if ($selectedClassId) {
             $class = SchoolClass::find($selectedClassId);
@@ -238,8 +245,12 @@ class GradeController extends Controller
                 ->where('school_class_id', $selectedClassId)
                 ->where('academic_year_id', $exam->academic_year_id)
                 ->where('status', 'active')
+                ->takingSubject($class, $selectedSubjectId)
                 ->get();
             $students = $enrollments->pluck('student');
+            $noCombinationCount = $class && $class->category() === 'a_level'
+                ? $enrollments->whereNull('subject_combination_id')->count()
+                : 0;
 
             if ($selectedSubjectId) {
                 $subject = Subject::find($selectedSubjectId);
@@ -303,7 +314,7 @@ class GradeController extends Controller
             $nextSubject = $ordered->first(fn($p) => ! $p['complete'] && ! $p['current'])['subject'] ?? null;
         }
 
-        return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectProgress', 'nextSubject', 'subjectComponents', 'existingComponentMarks'));
+        return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectProgress', 'nextSubject', 'subjectComponents', 'existingComponentMarks', 'noCombinationCount'));
     }
 
     public function save(SaveGradesRequest $request, Exam $exam)

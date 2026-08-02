@@ -29,10 +29,18 @@ class SubjectController extends Controller
     public function store(StoreSubjectRequest $request)
     {
         $validated = $request->validated();
+        // CHANGED (UACE paper rebuild): unchecked checkbox is absent from the payload;
+        // a subsidiary never has a principal paper structure.
+        $validated['is_subsidiary'] = $request->boolean('is_subsidiary');
+        if ($validated['is_subsidiary']) {
+            $validated['paper_count'] = null;
+        }
 
         $subject = Subject::create($validated);
         // CHANGED (A6): weighted assessment components (Paper 1/2, theory + practical).
         $this->syncComponents($subject, $request);
+        // CHANGED (UACE paper rebuild): named UACE paper definitions (P210/1 etc.)
+        $this->syncPapers($subject, $request);
 
         return redirect()->route('subjects.index')->with('success', 'Subject created successfully.');
     }
@@ -40,17 +48,24 @@ class SubjectController extends Controller
     public function edit(Subject $subject)
     {
         // CHANGED (A6): components editable on the subject form.
-        $subject->load('components');
+        $subject->load('components', 'papers'); // CHANGED (UACE paper rebuild): + papers
         return view('subjects.edit', compact('subject'));
     }
 
     public function update(UpdateSubjectRequest $request, Subject $subject)
     {
         $validated = $request->validated();
+        // CHANGED (UACE paper rebuild): see store()
+        $validated['is_subsidiary'] = $request->boolean('is_subsidiary');
+        if ($validated['is_subsidiary']) {
+            $validated['paper_count'] = null;
+        }
 
         $subject->update($validated);
         // CHANGED (A6)
         $this->syncComponents($subject, $request);
+        // CHANGED (UACE paper rebuild)
+        $this->syncPapers($subject, $request);
 
         return redirect()->route('subjects.index')->with('success', 'Subject updated successfully.');
     }
@@ -89,6 +104,45 @@ class SubjectController extends Controller
         }
 
         $subject->components()->whereNotIn('id', $keepIds)->delete();
+    }
+
+    /**
+     * CHANGED (UACE paper rebuild): sync UACE paper definitions (code + display name
+     * per paper number). Paper results reference subject_id + paper_number, so
+     * renaming a definition never orphans marks.
+     */
+    protected function syncPapers(Subject $subject, Request $request): void
+    {
+        $rows = $request->validate([
+            'papers' => 'nullable|array',
+            'papers.*.paper_code' => 'nullable|string|max:50',
+            'papers.*.display_name' => 'nullable|string|max:255',
+        ])['papers'] ?? [];
+
+        $count = $subject->is_subsidiary ? 1 : (int) $subject->paper_count;
+        if ($count < 1) {
+            $subject->papers()->delete();
+
+            return;
+        }
+
+        for ($n = 1; $n <= $count; $n++) {
+            $row = $rows[$n] ?? null;
+            $code = trim((string) ($row['paper_code'] ?? ''));
+            $name = trim((string) ($row['display_name'] ?? ''));
+
+            if ($code === '' && $name === '') {
+                $subject->papers()->where('paper_number', $n)->delete();
+                continue;
+            }
+
+            $subject->papers()->updateOrCreate(
+                ['paper_number' => $n],
+                ['paper_code' => $code ?: null, 'display_name' => $name ?: null]
+            );
+        }
+
+        $subject->papers()->where('paper_number', '>', $count)->delete();
     }
 
     public function destroy(Subject $subject)

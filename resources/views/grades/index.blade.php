@@ -101,6 +101,29 @@
         <p class="mt-2 text-xs text-gray-400">Enter marks for a single exam at a time.</p>
     </div>
 
+    {{-- CHANGED (UACE paper rebuild): A-Level marks are entered per PAPER, not blended --}}
+    @if($exams->count())
+    <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
+        <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            🎓 A-Level Paper Entry (S.5 / S.6 — per-paper UACE marks)
+        </div>
+        <form method="GET" id="uace-paper-form" class="flex flex-wrap gap-4 items-end">
+            <div class="w-56">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Exam (sitting)</label>
+                <select name="uace_exam_id" required class="w-full rounded-lg border-gray-300 shadow-sm text-sm"
+                    onchange="document.getElementById('uace-paper-form').action = '{{ url('grades') }}/' + this.value + '/papers';">
+                    <option value="">Select Exam</option>
+                    @foreach($exams as $exam)
+                    <option value="{{ $exam->id }}">{{ $exam->name }} ({{ $exam->academicYear->name ?? '' }} {{ $exam->term->name ?? '' }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white rounded-lg" style="background: var(--primary-color);">Open Paper Entry →</button>
+        </form>
+        <p class="mt-2 text-xs text-gray-400">Each paper is marked on its own (D1–F9); the subject grade comes from the official UACE combination table — never from an average.</p>
+    </div>
+    @endif
+
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700">
         <strong>How it works:</strong>
         Create individual exams (e.g. BOT, MOT, EOT), then create a <strong>Report Card</strong> exam that links them as components with weights (like coursework 40% + finals 60%). Use <em>Report Card Entry</em> above to enter all marks in one grid.

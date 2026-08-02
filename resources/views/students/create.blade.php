@@ -140,7 +140,7 @@
                     <select name="class_id" id="class_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm" onchange="updateSections()">
                         <option value="">Select Class</option>
                         @foreach($classes as $class)
-                        <option value="{{ $class->id }}" data-sections='@json($class->sections)' {{ old('class_id') == $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
+                        <option value="{{ $class->id }}" data-sections='@json($class->sections)' data-category="{{ $class->category() }}" {{ old('class_id') == $class->id ? 'selected' : '' }}>{{ $class->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -149,6 +149,17 @@
                     <select name="section_id" id="section_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
                         <option value="">Select Section</option>
                     </select>
+                </div>
+                {{-- A-Level only: UACE subject combination (required for S.5/S.6) --}}
+                <div id="combination_field" class="hidden md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Subject Combination <span class="text-red-500">*</span></label>
+                    <select name="subject_combination_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                        <option value="">Select Combination</option>
+                        @foreach($combinations as $combination)
+                        <option value="{{ $combination->id }}" {{ old('subject_combination_id') == $combination->id ? 'selected' : '' }}>{{ $combination->code }} — {{ $combination->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('subject_combination_id')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
@@ -213,6 +224,15 @@
             sections.forEach(s => {
                 sectionSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
             });
+
+            // Combination applies to A-Level classes only.
+            const combinationField = document.getElementById('combination_field');
+            if (combinationField) {
+                const isALevel = selected && selected.dataset.category === 'a_level';
+                combinationField.classList.toggle('hidden', !isALevel);
+                if (!isALevel) combinationField.querySelector('select').value = '';
+            }
         }
+        document.addEventListener('DOMContentLoaded', updateSections);
     </script>
 </x-app-layout>

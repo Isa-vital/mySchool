@@ -1,0 +1,386 @@
+TASK: Rebuild A-Level (UACE) grading from the paper level up. The current
+build grades each subject as one blended percentage (BOT/MOT/EOT weighted
+average) run through a percentage→letter table. That is not how UACE
+grading works and must be replaced, not patched.
+
+=====================================================================
+0. WHY THIS IS WRONG (read before touching code)
+=====================================================================
+Every UACE subject is composed of 2, 3, or 4 independently-marked
+PAPERS. Each paper is scored 0-100% and banded to a 9-point scale
+(D1-F9). The subject's Principal letter grade (A-E, O, F) is NOT an
+average of paper percentages — it comes from matching the specific
+COMBINATION of paper bands against a published rule table, where the
+worst paper constrains the outcome (in 3/4-paper subjects) and F9
+handling has its own non-obvious downgrade logic. A single blended
+percentage cannot feed this — there is no "worst paper" to find, and
+no per-paper F9 to detect. This is the root fix.
+
+=====================================================================
+1. DATA MODEL CHANGES
+=====================================================================
+
+1a. subjects table — add:
+    - paper_count (tinyint, 2/3/4)
+    - subject_category (enum: 'science' | 'non_science') — needed for
+      one specific rule exception (see 3d)
+    - is_subsidiary (bool) — General Paper / Sub-Math / Sub-ICT etc.
+
+1b. NEW TABLE subject_papers (definition, not results):
+    - subject_id
+    - paper_number (1..paper_count)
+    - paper_code (e.g. "P210/1") — what prints on the report card
+    - display_name (e.g. "Paper 1: Political Organisation")
+
+1c. NEW TABLE paper_results (replaces "one percentage per subject"):
+    - enrollment_id, subject_id, paper_number, term/exam_cycle_id
+    - raw_percentage (nullable — see 1d)
+    - status: enum('scored','absent','withheld') — NEVER store a raw
+      0 or null to mean absent; status is an explicit separate field
+    - paper_grade (computed: D1-F9, or null if status != 'scored')
+
+1d. Grade-entry UI/API must force a choice per paper: enter a score,
+    OR mark Absent, OR mark Withheld. No paper may be left blank and
+    saved — this is a hard validation, not a UI nicety, because
+    downstream aggregation cannot tell "0%" apart from "not sat"
+    otherwise.
+
+=====================================================================
+2. CONFIGURABLE LOOKUP TABLES (admin UI, zero code changes to edit)
+=====================================================================
+Everything UNEB-specific becomes DATA, editable from an admin screen,
+versioned by exam_cycle_id so a ruleset change never mutates history.
+Every table below needs: create, edit, clone-into-new-version,
+activate/deactivate. Never overwrite an active version in place —
+always clone-then-edit, so historical reports stay reproducible.
+
+2a. TABLE: paper_band_boundaries (per exam_cycle_id)
+    columns: band_code (D1/D2/C3/C4/C5/C6/P7/P8/F9), min_pct, max_pct
+    Used to convert paper_results.raw_percentage → paper_grade.
+    Seed with the current confirmed boundaries:
+      D1 85-100, D2 80-84, C3 75-79, C4 70-74, C5 65-69,
+      C6 60-64, P7 50-59, P8 40-49, F9 0-39
+    Admin can edit these directly if UNEB revises bands — no deploy.
+
+2b. TABLE: combination_rules (per exam_cycle_id, per paper_count)
+    columns: paper_count, rule_order (int — first match wins),
+             pattern (ordered array of band_codes, e.g. ["D1","D1","C4"]
+             — store as a matcher, not literal permutations: define
+             each rule as "worst band in set" + "count of bands below
+             threshold X", NOT as an exhaustive list of every possible
+             tuple. See 3b for exact matcher shape.
+             subject_category_override (nullable — for the science
+             exception, see 3d)
+    resulting_grade (A/B/C/D/E/O/F)
+
+    THIS TABLE MUST BE SEEDED FROM THE ACTUAL UNEB COMBINATION-MATRIX
+    ANNEXURE, NOT FROM ILLUSTRATIVE "E.G." EXAMPLES. If the real
+    annexure isn't in hand yet, seed only the patterns that are 100%
+    confirmed, and see 3c for what happens on an unmatched input —
+    do NOT guess-fill gaps with inferred patterns.
+
+2c. TABLE: grade_points (per exam_cycle_id)
+    columns: grade_code (A/B/C/D/E/O/F), points (int)
+    Seed: A=6, B=5, C=4, D=3, E=2, O=1, F=0
+    This exists as its own versioned table (not a hardcoded switch)
+    specifically because NCDC has signalled the letter set itself may
+    collapse to A-E only in a future cycle — when/if that happens, a
+    new exam_cycle_id gets its own grade_points + combination_rules
+    rows, old students' reports keep computing against the version
+    that was active when they sat, nothing in code changes.
+
+2d. TABLE: subsidiary_config (per exam_cycle_id)
+    - pass_threshold_pct (default 40 — matches F9/P8 boundary, i.e.
+      P8 and above = Pass)
+    - pass_points (default 1), fail_points (default 0)
+
+2e. TABLE: max_aggregate_config (per exam_cycle_id)
+    - Don't hardcode "20." Compute it as:
+      (best 3 principal subjects × max points in grade_points table)
+      + (count of required subsidiaries in the combination × 
+      subsidiary_config.pass_points)
+    - This makes the ceiling correct automatically if a combination
+      has a different subsidiary count, or if grade_points values
+      ever change.
+
+=====================================================================
+3. THE GRADING ENGINE (uaceBreakdown, rebuilt)
+=====================================================================
+
+3a. Per subject, per student, per exam_cycle:
+    1. Pull all paper_results for that subject where status='scored'.
+    2. If ANY paper for that subject has status='absent' or
+       'withheld' AND it's a required paper → subject result =
+       "INCOMPLETE", do not compute a letter grade, surface on
+       exception report (see 4). Never silently drop the paper from
+       the combination calc.
+    3. Convert each scored paper's raw_percentage to paper_grade via
+       paper_band_boundaries (2a).
+    4. Sort the resulting band_codes worst-to-best.
+    5. Walk combination_rules (2b) for this paper_count, in
+       rule_order, testing each pattern-matcher against the sorted
+       set. First match wins — do not average, do not pick "closest."
+    6. If NO rule matches → do not default to Fail or Pass. Output
+       status "UNMATCHED — MANUAL REVIEW REQUIRED" and add to the
+       exception report. This is the safety valve for exactly the
+       tie/edge cases (e.g. two P7s + one C6) that aren't cleanly
+       covered by the illustrative examples — a wrong guess here is
+       worse than a flagged gap.
+    7. Resulting grade → points via grade_points (2c).
+
+3b. Pattern-matcher shape for combination_rules — implement as a
+    small rule DSL, not literal tuples, e.g.:
+      { "worst_at_best": "C3", "others_at_best": "D1", "count_others": 2 }
+    meaning: worst paper is C3-or-better, and the other 2 papers are
+    D1-or-better. This is what lets admins add/edit rules from a UI
+    without needing every literal permutation enumerated — but the
+    matcher logic itself (comparing band ranks) is code; only the
+    threshold values per rule are data.
+
+3c. Unmatched-pattern handling (from 3a.6): build a small admin queue
+    view — "N subject results pending manual grade confirmation" —
+    where a registrar sees the raw paper grades and assigns the
+    correct letter by hand, which also creates a new combination_rules
+    row (with admin confirmation) so the same pattern auto-resolves
+    next time. This is how the rule table gets completed correctly
+    over time instead of being guessed upfront.
+
+3d. Science-subject exception: combination_rules rows may set
+    subject_category_override to force a different resulting_grade
+    when subject.subject_category = 'science' matches a specific
+    pattern (the documented case: two F9 + one P7 = Fail for science
+    subjects specifically, not the general O-grade outcome). Engine
+    checks category-specific rules before falling through to general
+    rules of the same paper_count.
+
+3e. Subsidiary subjects: single-paper subjects skip the combination
+    matrix entirely — just raw_percentage vs subsidiary_config
+    threshold → pass/fail → points. Keep this as a distinctly simpler
+    code path; do not force it through the paper-combination engine.
+
+3f. Total = sum(principal points, best 3) + sum(subsidiary points),
+    displayed as "X / max_aggregate_config value" — never a hardcoded
+    "/20" string anywhere in a template.
+
+=====================================================================
+4. REPORT CARD & RANKING
+=====================================================================
+- Report layout must print one row per PAPER (paper_code, %, band),
+  grouped under the subject, with the Principal/Subsidiary grade and
+  points shown once per subject — matching the per-paper card
+  structure already agreed, not a blended single line.
+- A subject with status INCOMPLETE or UNMATCHED prints that explicit
+  state on the card (not a blank, not a guessed grade) — official-
+  facing views only ever show a fully-resolved state: a grade, ABS,
+  INCOMPLETE, or the total is marked provisional until resolved.
+- Class ranking must exclude any student with an unresolved
+  INCOMPLETE/UNMATCHED subject from the "final" ranking pass, or
+  clearly mark their rank as provisional — do not rank against a
+  guessed number.
+- AoI/formative marks (already agreed) continue to print as a
+  separate, unblended section per subject — they do not feed
+  combination_rules or points in any way, at any level.
+
+=====================================================================
+5. MIGRATION FROM CURRENT STATE
+=====================================================================
+- Do NOT attempt to backfill paper_results from existing blended
+  BOT/MOT/EOT percentages — there's no valid mapping from one blended
+  number back to per-paper marks. Existing A-Level terms graded under
+  the old logic should be flagged historical/legacy and displayed
+  as-is, not silently recomputed.
+- New grade entry from this point forward uses the paper_results
+  model exclusively for A-Level.
+
+=====================================================================
+6. ACCEPTANCE TEST TO RUN BEFORE CALLING THIS DONE
+=====================================================================
+Re-run a version of the earlier PCM verification test, but at the
+PAPER level, e.g.:
+  Physics: P1=88% (D1), P2=79% (C3), P3=81% (D2)
+    -> sorted worst-to-best: C3, D1, D2
+    -> should match "at worst C3, distinctions in remaining two"
+       -> Principal Pass A (per 3-paper rules)
+  Chemistry: P1=72% (C4), P2=45% (P8)
+    -> 2-paper: C4 + a subject-pass-band paper, check aggregate rule
+  Include one deliberately unmatched/edge-case tuple and confirm it
+  lands in the manual-review queue instead of an auto-guessed grade.
+Report back the actual band_codes and matched rule_order for each,
+not just the final letter — so the reasoning is auditable, not a
+black box.
+=====================================================================
+APPENDIX: VERIFIED UNEB REFERENCE DATA — SEED THESE TABLES EXACTLY
+=====================================================================
+This is the authoritative source data for section 2 of the rebuild
+prompt. Where a rule is marked CONFIRMED, seed it as-is. Where marked
+UNCONFIRMED/GAP, seed nothing and leave it for the manual-review queue
+(section 3c) — do not infer a pattern to fill the gap.
+
+---------------------------------------------------------------------
+A. PAPER BAND BOUNDARIES (2a) — CONFIRMED
+---------------------------------------------------------------------
+band_code | min_pct | max_pct
+D1        |   85    |  100
+D2        |   80    |   84
+C3        |   75    |   79
+C4        |   70    |   74
+C5        |   65    |   69
+C6        |   60    |   64
+P7        |   50    |   59
+P8        |   40    |   49
+F9        |    0    |   39
+
+Band groupings referenced elsewhere:
+  "Distinction" = D1, D2
+  "Credit"      = C3, C4, C5, C6
+  "Pass"        = P7, P8
+  "Fail"        = F9
+
+---------------------------------------------------------------------
+B. COMBINATION RULES (2b) — TWO-PAPER SUBJECTS — CONFIRMED
+---------------------------------------------------------------------
+rule_order | resulting_grade | pattern (plain description)
+1  | A | Both papers are Distinctions (D1/D2)
+2  | B | One paper C3-or-better AND the other paper C3-or-better
+       | (i.e. worst paper is C3)
+3  | C | Worst paper is C4, other paper C4-or-better
+4  | D | Worst paper is C5, other paper C5-or-better
+5  | E | Worst paper is C6, other paper C6-or-better
+6  | E | One paper is a Pass (P7 or P8) AND the sum of the two
+       | numeric paper-grade values (1=D1...9=F9) does NOT exceed 12
+       | e.g. D1+P7(1+7=8), C6+P7(6+7=13 -> NOT this rule, check C
+       |      below), C4+P8(4+8=12 -> qualifies)
+7  | O (Subsidiary Pass) | One paper is a Pass (P7/P8) AND the sum of
+       | the two numeric values does NOT exceed 16 but exceeds 12
+8  | O (Subsidiary Pass) | Credit-or-better in one paper AND F9 in
+       | the other paper
+9  | F (Fail) | F9 in one paper AND P8 in the other
+10 | F (Fail) | F9 in both papers
+
+NOTE FOR THE MATCHER (3b): rules 6-7 use a SUM-based test, not a
+simple "worst paper" test — this is a different matcher shape than
+the 3/4-paper rules below and must be implemented as its own function,
+not generalized into the "worst paper" logic used elsewhere.
+
+---------------------------------------------------------------------
+C. COMBINATION RULES (2b) — THREE-PAPER SUBJECTS — CONFIRMED
+---------------------------------------------------------------------
+rule_order | resulting_grade | pattern
+1 | A | Worst paper is C3-or-better, other two are Distinctions
+2 | B | Worst paper is C4-or-better, other two are C3-or-better
+3 | C | Worst paper is C5-or-better, other two are C4-or-better
+4 | D | Worst paper is C6-or-better, other two are C5-or-better
+5 | E | Worst paper is P7, other two are Credit-or-better (C6 or above)
+       | OR worst paper is P8, and NOT MORE THAN ONE of the remaining
+       | two papers is C6 (i.e. at most one C6, the other must be
+       | C5-or-better)
+6 | O | All three papers are P7
+       | OR all three papers are P8
+       | OR one paper is F9, other two are Pass(P7/P8)-or-better
+       | OR two papers are F9, third paper is P7-or-better
+       |    *** EXCEPTION: if subject_category = 'science', this
+       |    specific pattern (two F9 + one P7) resolves to FAIL,
+       |    not O. This is the one confirmed category override. ***
+7 | F | Two papers F9, third paper P8
+8 | F | All three papers F9
+
+UNCONFIRMED/GAP: two papers at P7 (not F9) plus one paper at C6 —
+does not appear in the published examples for either the E-grade or
+O-grade rows above. DO NOT assume this defaults to E or O. Route to
+manual review.
+
+---------------------------------------------------------------------
+D. COMBINATION RULES (2b) — FOUR-PAPER SUBJECTS — CONFIRMED
+---------------------------------------------------------------------
+Same shape as 3-paper, shifted by one paper (i.e. the "remaining"
+group is now 3 papers instead of 2):
+rule_order | resulting_grade | pattern
+1 | A | Worst paper C3-or-better, other three Distinctions
+2 | B | Worst paper C4-or-better, other three C3-or-better
+3 | C | Worst paper C5-or-better, other three C4-or-better
+4 | D | Worst paper C6-or-better, other three C5-or-better
+5 | E | Worst paper P7, other three Credit-or-better
+       | OR worst paper P8, and NOT MORE THAN TWO of the remaining
+       | three are C6
+6 | O | All four papers P7 OR all four papers P8
+       | OR one paper F9, other three Pass-or-better
+       | OR two papers F9, other two P7-or-better
+7 | F | Two papers F9, other two P8
+8 | F | All four papers F9
+
+---------------------------------------------------------------------
+E. SUBSIDIARY SUBJECTS (single paper) — CONFIRMED
+---------------------------------------------------------------------
+Paper grade 1-6 (D1 through C6) -> Subsidiary Pass
+Paper grade 7-8 (P7, P8)        -> Subsidiary Pass
+Paper grade 9 (F9)              -> Fail
+i.e. threshold is simply "anything except F9 passes" -> matches the
+40% cutoff already correctly implemented (P8 floor = 40%).
+
+---------------------------------------------------------------------
+F. GRADE POINTS (2c) — CONFIRMED
+---------------------------------------------------------------------
+grade_code | points
+A | 6
+B | 5
+C | 4
+D | 3
+E | 2
+O | 1
+F | 0
+
+DO NOT use A=5,B=4,C=3,D=2,E=1 anywhere in A-Level code — that scale
+belongs to O-Level (UCE) only and was the source of the earlier
+17-point bug. Keep these as two entirely separate versioned tables
+(O-Level grade_points vs A-Level grade_points), never one shared table
+with a level flag, so a future edit to one can never leak into the
+other.
+
+---------------------------------------------------------------------
+G. AGGREGATE CEILING (2e) — CONFIRMED FOR CURRENT (LEGACY) MODEL
+---------------------------------------------------------------------
+Best 3 principal subjects x 6 points max = 18
++ General Paper subsidiary pass = 1
++ Sub-Math OR Sub-ICT subsidiary pass (student takes exactly one) = 1
+= 20 points maximum, NOT 17.
+
+There is a SEPARATE, university-specific weighting layer (used by
+e.g. Makerere/JAB for programme admission) that multiplies principal
+grade-points by course-specific factors (best "essential" subject x3,
+second x2, third x1) plus flat 1-point subsidiaries. This produces a
+different, programme-dependent number and must live in its own
+AdmissionsWeightingProfile table, never merged with the 20-point
+UNEB aggregate above. If the school ever wants to show a projected
+university-weighted score, that is an entirely separate configurable
+profile per programme, not a variant of the core grading engine.
+
+---------------------------------------------------------------------
+H. CRITICAL CONTEXT THE AGENT MUST KNOW — CURRICULUM STATUS
+---------------------------------------------------------------------
+1. As of now, A-Level (S5/S6) has NO official continuous-assessment
+   component. 100% of a UNEB-certified grade comes from end-of-cycle
+   papers. Any AoI/formative marks captured at A-Level are for the
+   school's own internal reporting ONLY — they must never feed
+   combination_rules, grade_points, or the points total, at any level
+   of the code. This is a hard boundary, not a style preference.
+
+2. The A-Level letter/points system above is the CURRENT, still-legally
+   -operative model (used for the 2025 UACE sitting and all repeat/
+   old-track candidates). NCDC has separately confirmed that the
+   letter set for A-Level is expected to collapse from A,B,C,D,E,O,F
+   down to just A,B,C,D,E in an upcoming cycle, mirroring the O-Level
+   model — but the exact new mark boundaries and points table are NOT
+   yet public. This is exactly why grade_points, paper_band_boundaries,
+   and combination_rules are versioned per exam_cycle_id in this
+   design: when that table is published, it becomes a new version,
+   not a rewrite of this one.
+
+3. Two of the rule gaps above (three-paper: two-P7-plus-one-C6; the
+   General Paper / Sub-Math boundary edge cases surfaced in the
+   report-card correction earlier) are REAL gaps in the source
+   material available right now, not oversights in this appendix.
+   Get the actual UNEB combination-matrix annexure from the school's
+   examinations office or UNEB directly if possible — that is the
+   only way to close rules C-gap and D-gap with certainty rather than
+   a plausible guess.
+=====================================================================

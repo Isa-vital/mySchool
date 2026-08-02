@@ -280,12 +280,119 @@
         @endif
 
         @elseif($formatted['format'] === 'a-level')
-        {{-- A-LEVEL FORMAT: Grade Points with School Total out of configured max --}}
+        {{-- CHANGED (A-Level rebuild): UACE combination-based — principals + subsidiaries --}}
+        @if(!empty($formatted['combination_code']))
+        <p class="text-sm text-gray-600 mb-2"><strong>Combination:</strong> {{ $formatted['combination_code'] }} — {{ $formatted['combination_name'] }}</p>
+        @elseif(!($formatted['has_combination'] ?? true))
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-sm text-amber-800">No subject combination assigned — all subjects graded as principals. Assign one from the student's edit page.</div>
+        @endif
+        @if($formatted['paper_based'] ?? false)
+        {{-- CHANGED (UACE paper rebuild): one row per PAPER grouped under the subject.
+             INCOMPLETE / PENDING REVIEW print explicitly — never a blank or a guess. --}}
+        @if($formatted['provisional'] ?? false)
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-sm text-amber-800"><strong>Provisional:</strong> one or more subjects await results or manual grade confirmation. Points and position are incomplete.</div>
+        @endif
+        <table class="min-w-full divide-y divide-gray-200 mb-4">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Principal Subject</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Paper</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Mark</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Band</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($formatted['subjects'] as $subject)
+                @php
+                $paperRows = $subject['papers'] ?? [];
+                $rowCount = max(count($paperRows), 1);
+                $gradeLabel = match ($subject['status'] ?? 'graded') {
+                'graded' => $subject['grade'],
+                'incomplete' => 'INCOMPLETE',
+                default => 'PENDING REVIEW',
+                };
+                $isGraded = ($subject['status'] ?? '') === 'graded';
+                @endphp
+                @forelse($paperRows as $paper)
+                <tr>
+                    @if($loop->first)
+                    <td rowspan="{{ $rowCount }}" class="px-4 py-2 text-sm font-medium text-gray-900 align-middle">{{ $subject['subject'] }}</td>
+                    @endif
+                    <td class="px-4 py-2 text-sm text-gray-700">{{ $paper['label'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-900">{{ $paper['percentage'] !== null ? round($paper['percentage']) . '%' : '—' }}</td>
+                    <td class="px-4 py-2 text-sm text-center font-semibold {{ in_array($paper['band'], ['ABSENT','WITHHELD','MISSING']) ? 'text-amber-700 text-xs' : 'text-gray-900' }}">{{ $paper['band'] }}</td>
+                    @if($loop->first)
+                    <td rowspan="{{ $rowCount }}" class="px-4 py-2 text-sm text-center align-middle font-bold {{ $isGraded ? 'text-gray-900' : 'text-amber-700 text-xs' }}">{{ $gradeLabel }}</td>
+                    <td rowspan="{{ $rowCount }}" class="px-4 py-2 text-sm text-center align-middle">
+                        @if($isGraded)
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800">{{ $subject['points'] }}</span>
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                    @endif
+                </tr>
+                @empty
+                <tr>
+                    <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $subject['subject'] }}</td>
+                    <td colspan="3" class="px-4 py-2 text-sm text-gray-500">No papers recorded</td>
+                    <td class="px-4 py-2 text-sm text-center font-bold text-amber-700 text-xs">{{ $gradeLabel }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-400">—</td>
+                </tr>
+                @endforelse
+                @endforeach
+            </tbody>
+        </table>
+        @if(count($formatted['subsidiaries'] ?? []) > 0)
         <table class="min-w-full divide-y divide-gray-200 mb-6">
             <thead class="bg-gray-50">
                 <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subsidiary Subject</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Mark</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Result</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($formatted['subsidiaries'] as $subsidiary)
+                @php
+                $subPaper = ($subsidiary['papers'] ?? [])[0] ?? null;
+                $subGraded = ($subsidiary['status'] ?? '') === 'graded';
+                $subResult = match ($subsidiary['status'] ?? 'graded') {
+                'graded' => $subsidiary['grade'],
+                'incomplete' => 'INCOMPLETE',
+                default => 'PENDING REVIEW',
+                };
+                @endphp
+                <tr>
+                    <td class="px-4 py-2 text-sm text-gray-900">{{ $subsidiary['subject'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-900">{{ $subPaper && $subPaper['percentage'] !== null ? round($subPaper['percentage']) . '%' : ($subPaper['band'] ?? '—') }}</td>
+                    <td class="px-4 py-2 text-sm text-center font-bold {{ $subGraded ? ($subResult === 'Pass' ? 'text-green-700' : 'text-red-600') : 'text-amber-700 text-xs' }}">{{ $subResult }}</td>
+                    <td class="px-4 py-2 text-sm text-center">
+                        @if($subGraded)
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800">{{ $subsidiary['points'] }}</span>
+                        @else
+                        <span class="text-gray-400">—</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
+        @else
+        {{-- CHANGED (UACE paper rebuild): historical term without per-paper results —
+             legacy blended figures shown as-is and flagged. NEVER recomputed. --}}
+        @if($formatted['legacy'] ?? false)
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3 text-xs text-gray-500 italic">Historical record — graded under the previous blended-percentage method (before paper-level UACE grading).</div>
+        @endif
+        <table class="min-w-full divide-y divide-gray-200 mb-4">
+            <thead class="bg-gray-50">
+                <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Principal Subject</th>
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marks</th>
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
                     <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
@@ -296,24 +403,42 @@
                 <tr>
                     <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
                     <td class="px-4 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
-                    <td class="px-4 py-2 text-sm text-center text-gray-900 font-medium">{{ $subject['marks'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-900 font-medium">{{ $subject['marks'] }}%</td>
                     <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['grade'] }}</td>
                     <td class="px-4 py-2 text-sm text-center">
-                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800">
-                            {{ $subject['points'] }}
-                        </span>
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800">{{ $subject['points'] }}</span>
                     </td>
                 </tr>
                 @endforeach
             </tbody>
-            <tfoot class="bg-gray-50">
-                <tr>
-                    <td colspan="3" class="px-4 py-2 text-sm font-bold text-gray-900">Total / Average</td>
-                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['average_points'] }}</td>
-                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}</td>
-                </tr>
-            </tfoot>
         </table>
+        @if(count($formatted['subsidiaries'] ?? []) > 0)
+        <table class="min-w-full divide-y divide-gray-200 mb-6">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subsidiary Subject</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marks</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Result</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($formatted['subsidiaries'] as $i => $subsidiary)
+                <tr>
+                    <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
+                    <td class="px-4 py-2 text-sm text-gray-900">{{ $subsidiary['subject'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center text-gray-900 font-medium">{{ $subsidiary['marks'] }}%</td>
+                    <td class="px-4 py-2 text-sm text-center font-bold {{ $subsidiary['result'] === 'Pass' ? 'text-green-700' : 'text-red-600' }}">{{ $subsidiary['result'] }}</td>
+                    <td class="px-4 py-2 text-sm text-center">
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-indigo-100 text-indigo-800">{{ $subsidiary['points'] }}</span>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
+        @endif
         @endif
 
         {{-- Results summary: total, average, class position and Uganda national result --}}
@@ -356,19 +481,19 @@
             @elseif($formatted['format'] === 'a-level')
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Total Points</div>
-                <div class="text-lg font-bold text-gray-900">{{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}</div>
+                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}@if($formatted['provisional'] ?? false)<span class="text-xs text-amber-600 font-medium"> (prov.)</span>@endif</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
-                <div class="text-xs text-gray-500 uppercase">Average Points</div>
-                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['average_points'] }}</div>
+                <div class="text-xs text-gray-500 uppercase">Principal Points</div>
+                <div class="text-lg font-bold text-gray-900">{{ $formatted['principal_points'] }}</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
-                <div class="text-xs text-gray-500 uppercase">Subjects</div>
-                <div class="text-lg font-bold text-gray-900">{{ $formatted['subject_count'] }}</div>
+                <div class="text-xs text-gray-500 uppercase">Subsidiary Points</div>
+                <div class="text-lg font-bold text-gray-900">{{ $formatted['subsidiary_points'] }}</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Position</div>
-                <div class="text-lg font-bold text-gray-900">{{ $formatted['position'] ? $formatted['position'] . ' / ' . $formatted['class_size'] : '-' }}</div>
+                <div class="text-lg font-bold text-gray-900">{{ $formatted['position'] ? $formatted['position'] . ' / ' . $formatted['class_size'] : (($formatted['provisional'] ?? false) ? 'Pending' : '-') }}</div>
             </div>
             @endif
         </div>

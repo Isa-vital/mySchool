@@ -152,6 +152,14 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     Route::patch('subjects/{subject}', [SubjectController::class, 'update'])->middleware('permission:subjects.edit');
     Route::delete('subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy')->middleware('permission:subjects.delete');
 
+    // A-Level subject combinations (reuses subjects.* permissions)
+    Route::get('subject-combinations', [App\Http\Controllers\SubjectCombinationController::class, 'index'])->name('subject-combinations.index')->middleware('permission:subjects.view');
+    Route::get('subject-combinations/create', [App\Http\Controllers\SubjectCombinationController::class, 'create'])->name('subject-combinations.create')->middleware('permission:subjects.create');
+    Route::post('subject-combinations', [App\Http\Controllers\SubjectCombinationController::class, 'store'])->name('subject-combinations.store')->middleware('permission:subjects.create');
+    Route::get('subject-combinations/{subjectCombination}/edit', [App\Http\Controllers\SubjectCombinationController::class, 'edit'])->name('subject-combinations.edit')->middleware('permission:subjects.edit');
+    Route::put('subject-combinations/{subjectCombination}', [App\Http\Controllers\SubjectCombinationController::class, 'update'])->name('subject-combinations.update')->middleware('permission:subjects.edit');
+    Route::delete('subject-combinations/{subjectCombination}', [App\Http\Controllers\SubjectCombinationController::class, 'destroy'])->name('subject-combinations.destroy')->middleware('permission:subjects.delete');
+
     // Timetable
     Route::get('timetable', [TimetableController::class, 'index'])->name('timetable.index')->middleware('permission:timetable.view');
     Route::get('timetable/create', [TimetableController::class, 'create'])->name('timetable.create')->middleware('permission:timetable.create');
@@ -192,6 +200,16 @@ Route::middleware(['auth', 'verified', 'approved'])->group(function () {
     // CHANGED: grid entry — one view for all component exams (coursework + finals style)
     Route::get('grades/{report_exam}/enter-grid', [GradeController::class, 'enterGrid'])->name('grades.enter-grid')->middleware('permission:grades.create');
     Route::post('grades/{report_exam}/save-grid', [GradeController::class, 'saveGrid'])->name('grades.save-grid')->middleware('permission:grades.create');
+
+    // CHANGED (UACE paper rebuild): A-Level per-paper mark entry, manual review queue
+    // and versioned grading rulesets (exam cycles).
+    Route::get('grades/{exam}/papers', [App\Http\Controllers\UacePaperGradeController::class, 'enter'])->name('uace-papers.enter')->middleware('permission:grades.create');
+    Route::post('grades/{exam}/papers', [App\Http\Controllers\UacePaperGradeController::class, 'save'])->name('uace-papers.save')->middleware('permission:grades.create');
+    Route::get('uace-review', [App\Http\Controllers\UaceReviewController::class, 'index'])->name('uace-review.index')->middleware('permission:grades.edit');
+    Route::post('uace-review/resolve', [App\Http\Controllers\UaceReviewController::class, 'resolve'])->name('uace-review.resolve')->middleware('permission:grades.edit');
+    Route::get('uace-cycles', [App\Http\Controllers\ExamCycleController::class, 'index'])->name('uace-cycles.index')->middleware('permission:settings.view');
+    Route::post('uace-cycles/{examCycle}/clone', [App\Http\Controllers\ExamCycleController::class, 'clone'])->name('uace-cycles.clone')->middleware('permission:settings.edit');
+    Route::post('uace-cycles/{examCycle}/activate', [App\Http\Controllers\ExamCycleController::class, 'activate'])->name('uace-cycles.activate')->middleware('permission:settings.edit');
 
     // Report Cards
     Route::get('report-cards', [ReportCardController::class, 'index'])->name('report-cards.index')->middleware('permission:report_cards.view');

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Subject extends Model
 {
-    protected $fillable = ['name', 'code', 'type', 'description', 'is_active'];
+    protected $fillable = ['name', 'code', 'type', 'description', 'is_active', 'paper_count', 'subject_category', 'is_subsidiary'];
 
     // CHANGED (A6): weighted assessment components (Paper 1/2, theory + practical).
     public function components()
@@ -19,7 +19,13 @@ class Subject extends Model
         return $this->components()->exists();
     }
 
-    protected $casts = ['is_active' => 'boolean'];
+    // UACE paper definitions (2-4 papers per principal subject).
+    public function papers()
+    {
+        return $this->hasMany(SubjectPaper::class)->orderBy('paper_number');
+    }
+
+    protected $casts = ['is_active' => 'boolean', 'is_subsidiary' => 'boolean'];
 
     public function classes()
     {

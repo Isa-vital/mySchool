@@ -117,14 +117,48 @@ class ReportCardCompositionService
 
     public static function classTotals(Exam $exam, int $schoolClassId, int $academicYearId): Collection
     {
-        $studentIds = Enrollment::query()
+        $enrollments = Enrollment::query()
             ->where('school_class_id', $schoolClassId)
             ->where('academic_year_id', $academicYearId)
             ->where('status', 'active')
-            ->pluck('student_id');
+            ->with('subjectCombination.subjects')
+            ->get()
+            ->keyBy('student_id');
 
-        return Student::whereIn('id', $studentIds)->get()->mapWithKeys(function ($student) use ($exam, $schoolClassId) {
+        // CHANGED (A-Level rebuild): a-level classes rank by UACE points with marks as
+        // tie-break (points * 10000 + marks); other levels keep plain total marks.
+        $class = \App\Models\SchoolClass::find($schoolClassId);
+        $isALevel = $class && $class->category() === 'a_level';
+        $ranges = $isALevel ? AssessmentGradingService::rangesForExam($exam, $class) : [];
+
+        return Student::whereIn('id', $enrollments->keys())->get()->mapWithKeys(function ($student) use ($exam, $schoolClassId, $enrollments, $isALevel, $ranges) {
             $figures = self::buildStudentFigures($student, $exam, $schoolClassId);
+
+            if ($isALevel) {
+                $enrollment = $enrollments[$student->id];
+
+                // CHANGED (UACE paper rebuild): when per-paper results exist, rank by the
+                // paper-level engine's points. Provisional students (INCOMPLETE/UNMATCHED
+                // subjects) are EXCLUDED from ranking — never ranked on a guessed grade.
+                $sitting = UaceGradingEngine::resolveSitting($exam, $enrollment->id);
+                if ($sitting) {
+                    $uace = UaceGradingEngine::studentResult($enrollment, $sitting);
+                    if ($uace['available']) {
+                        if ($uace['provisional']) {
+                            return []; // excluded from ranking until resolved
+                        }
+
+                        return [$student->id => $uace['total_points'] * 10000 + (float) $uace['marks_total']];
+                    }
+                }
+
+                // Legacy blended fallback (historical terms without paper results).
+                $combination = $enrollment->subjectCombination ?? null;
+                $breakdown = UgandaGrading::uaceBreakdown($figures['grades'], $combination, $ranges);
+
+                return [$student->id => $breakdown['total_points'] * 10000 + (float) $figures['total_marks']];
+            }
+
             return [$student->id => $figures['total_marks']];
         });
     }

@@ -143,6 +143,21 @@
             </div>
         </div>
 
+        {{-- A-Level only: combination is stored on the current enrollment --}}
+        @if($currentEnrollment && $currentEnrollment->schoolClass?->category() === 'a_level')
+        <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">A-Level Combination ({{ $currentEnrollment->schoolClass->name }})</h3>
+            <div class="md:w-1/2">
+                <select name="subject_combination_id" class="w-full rounded-lg border-gray-300 shadow-sm text-sm">
+                    <option value="">Select Combination</option>
+                    @foreach($combinations as $combination)
+                    <option value="{{ $combination->id }}" {{ old('subject_combination_id', $currentEnrollment->subject_combination_id) == $combination->id ? 'selected' : '' }}>{{ $combination->code }} — {{ $combination->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        @endif
+
         <div class="flex items-center justify-end space-x-3">
             <a href="{{ route('students.show', $student) }}" class="px-6 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-50">Cancel</a>
             <button type="submit" class="px-6 py-2 text-sm font-medium text-white rounded-lg shadow-sm" style="background: var(--primary-color);">Update Student</button>

@@ -49,7 +49,9 @@ class ReportCardDataService
             $figures['average'],
             $figures['position'],
             $figures['class_size'],
-            $schoolClass
+            $schoolClass,
+            $enrollment, // CHANGED (A-Level rebuild): carries the UACE combination
+            $figures['uace'] // CHANGED (UACE paper rebuild): paper-level result when present
         );
 
         return [
@@ -81,7 +83,8 @@ class ReportCardDataService
     /**
      * Compute totals, class position and national result for one student/exam.
      */
-    public static function computeFigures(Student $student, Exam $exam, ?Collection $precomputedClassTotals = null): array    {
+    public static function computeFigures(Student $student, Exam $exam, ?Collection $precomputedClassTotals = null): array
+    {
         $enrollment = $student->enrollments()->where('academic_year_id', $exam->academic_year_id)->first();
         $schoolClass = $enrollment?->schoolClass;
 
@@ -97,11 +100,38 @@ class ReportCardDataService
         // instead of recomputing them for every student.
         $position = null;
         $classSize = null;
+        // CHANGED (UACE paper rebuild): when per-paper results exist for this sitting,
+        // the paper-level engine is authoritative for grading and ranking.
+        $uace = null;
+        $provisional = false;
+        if ($schoolClass && $schoolClass->category() === 'a_level' && $enrollment) {
+            $sitting = UaceGradingEngine::resolveSitting($exam, $enrollment->id);
+            if ($sitting) {
+                $candidate = UaceGradingEngine::studentResult($enrollment, $sitting);
+                if ($candidate['available']) {
+                    $uace = $candidate;
+                    $provisional = $candidate['provisional'];
+                }
+            }
+        }
         if ($schoolClass) {
             $classTotals = ($precomputedClassTotals
                 ?? ReportCardCompositionService::classTotals($exam, $schoolClass->id, $exam->academic_year_id))
                 ->sortDesc()
                 ->values();
+
+            // CHANGED (A-Level rebuild): S.5/S.6 rank by UACE points (marks as tie-break),
+            // matching the metric classTotals() produces for a-level classes.
+            $rankValue = (float) $total;
+            if ($uace) {
+                $rankValue = $uace['total_points'] * 10000 + (float) $uace['marks_total'];
+            } elseif ($schoolClass->category() === 'a_level') {
+                $combination = $enrollment?->subjectCombination;
+                $combination?->loadMissing('subjects');
+                $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
+                $breakdown = UgandaGrading::uaceBreakdown($grades, $combination, $ranges);
+                $rankValue = $breakdown['total_points'] * 10000 + (float) $total;
+            }
 
             $classSize = $classTotals->count();
             // CHANGED (tie ranking): was `$rank = $classTotals->search(...)` which gave tied
@@ -111,8 +141,14 @@ class ReportCardDataService
             // $rank = $classTotals->search(fn($t) => (float) $t === (float) $total);
             // $position = $rank === false ? null : $rank + 1;
             $position = $classSize > 0
-                ? $classTotals->filter(fn($t) => (float) $t > (float) $total)->count() + 1
+                ? $classTotals->filter(fn($t) => (float) $t > $rankValue)->count() + 1
                 : null;
+
+            // CHANGED (UACE paper rebuild): provisional students are not ranked —
+            // an INCOMPLETE/UNMATCHED subject must never silently affect positions.
+            if ($provisional) {
+                $position = null;
+            }
         }
 
         // Uganda national result (only for P.7 / S.4 / S.6).
@@ -128,6 +164,9 @@ class ReportCardDataService
             'class_size' => $classSize,
             'result' => $national['label'],
             'aggregate' => $national['aggregate'],
+            // CHANGED (UACE paper rebuild): paper-level result (null = legacy blended term)
+            'uace' => $uace,
+            'provisional' => $provisional,
         ];
     }
 

@@ -43,6 +43,20 @@ class Exam extends Model
         'is_report_card' => 'boolean',
     ];
 
+    // CHANGED (UACE paper rebuild): every new exam pins the active grading ruleset
+    // (exam cycle) at creation, so later ruleset revisions never rewrite history.
+    protected static function booted()
+    {
+        static::creating(function (self $exam) {
+            $exam->exam_cycle_id ??= ExamCycle::active()?->id;
+        });
+    }
+
+    public function examCycle()
+    {
+        return $this->belongsTo(ExamCycle::class);
+    }
+
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);

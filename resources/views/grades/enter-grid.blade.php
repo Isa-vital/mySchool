@@ -10,6 +10,12 @@
     </x-slot>
 
     {{-- Selectors --}}
+    @if(($noCombinationCount ?? 0) > 0)
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800">
+        <strong>{{ $noCombinationCount }} A-Level student(s) have no subject combination assigned</strong> — they are listed for every subject.
+        Assign combinations from each student's edit page so only their real subjects appear here.
+    </div>
+    @endif
     <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
         <form method="GET" action="{{ route('grades.enter-grid', $reportExam) }}" class="flex flex-wrap gap-4 items-end">
             <div class="w-48">
@@ -183,14 +189,14 @@
          extracts raw blocks before stripping comments and corrupts the file. --}}
     @php
     $gradingRangesPayload = collect(\App\Services\AssessmentGradingService::rangesForExam($reportExam))
-        ->map(function ($r) {
-            return [
-                'grade' => $r['grade'],
-                'min' => (float) $r['min'],
-                'max' => (float) $r['max'],
-            ];
-        })
-        ->values();
+    ->map(function ($r) {
+    return [
+    'grade' => $r['grade'],
+    'min' => (float) $r['min'],
+    'max' => (float) $r['max'],
+    ];
+    })
+    ->values();
     @endphp
     <script>
         // Grading ranges from server for live grade preview

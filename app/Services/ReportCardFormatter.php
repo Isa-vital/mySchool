@@ -20,13 +20,15 @@ class ReportCardFormatter
         float $average,
         ?int $position,
         ?int $classSize,
-        ?SchoolClass $schoolClass = null
+        ?SchoolClass $schoolClass = null,
+        $enrollment = null, // CHANGED (A-Level rebuild): carries the student's combination
+        ?array $uace = null // CHANGED (UACE paper rebuild): paper-level engine result, when it exists
     ): array {
         // CHANGED: was `match ($exam->assessment_format)` — now resolves 'auto' via the class.
         return match (AssessmentGradingService::resolveFormat($exam->assessment_format, $schoolClass)) {
             'primary' => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
             'o-level' => self::formatOLevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
-            'a-level' => self::formatALevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
+            'a-level' => self::formatALevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass, $enrollment, $uace),
             default => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
         };
     }
@@ -174,9 +176,9 @@ class ReportCardFormatter
     }
 
     /**
-     * A-LEVEL FORMAT: Points-based (0-20 max per subject)
-     * Each subject shows: Marks → Points (0-20 scale)
-     * Total: Sum of all subject points (can be 60+ if 3+ subjects)
+     * A-LEVEL FORMAT (UACE): combination-based.
+     * Principals: A-F => 6,5,4,3,2,1(O),0 points. Subsidiaries: pass = 1 point.
+     * Total out of 20 (3 principals x 6 + 2 subsidiaries x 1).
      */
     private static function formatALevel(
         Collection $grades,
@@ -185,38 +187,72 @@ class ReportCardFormatter
         ?int $position,
         ?int $classSize,
         Exam $exam,
-        ?SchoolClass $schoolClass = null // CHANGED: class-aware ranges for 'auto' format
+        ?SchoolClass $schoolClass = null,
+        $enrollment = null,
+        ?array $uace = null // CHANGED (UACE paper rebuild)
     ): array {
-        $maxPoints = (int) setting('alevel_points_max', 20);
-        $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
-
-        $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
-            $marks = $grade->marks_obtained ?? 0;
-            $uace = AssessmentGradingService::resolve($marks, $ranges);
-
+        // CHANGED (UACE paper rebuild): when per-paper results exist, the paper-level
+        // engine is authoritative. One row per PAPER grouped under the subject;
+        // INCOMPLETE/UNMATCHED are printed explicitly — never a blank or a guess.
+        if ($uace) {
             return [
-                'subject' => $grade->subject->name,
-                'marks' => $marks,
-                'grade' => $uace['grade'],
-                'points' => (int) ($uace['points'] ?? 0),
+                'format' => 'a-level',
+                'format_label' => 'A-Level School Report (UACE)',
+                'paper_based' => true,
+                'cycle' => $uace['cycle'],
+                'sitting' => $uace['sitting'],
+                'subjects' => collect($uace['principals']),
+                'subsidiaries' => collect($uace['subsidiaries']),
+                'excluded_subjects' => [],
+                'combination_code' => $uace['combination_code'],
+                'combination_name' => $uace['combination_name'],
+                'has_combination' => true,
+                'provisional' => $uace['provisional'],
+                'total_marks' => $totalMarks,
+                'average' => round($average, 2),
+                'principal_points' => $uace['principal_points'],
+                'subsidiary_points' => $uace['subsidiary_points'],
+                'total_points' => $uace['total_points'],
+                'max_points' => $uace['max_points'],
+                'subject_count' => count($uace['principals']) + count($uace['subsidiaries']),
+                'position' => $position,
+                'class_size' => $classSize,
+                'remarks' => [
+                    'conduct_required' => false,
+                    'teacher_comment_required' => true,
+                    'head_comment_required' => true,
+                ],
             ];
-        });
+        }
 
-        $rawPoints = $gradedSubjects->sum('points');
-        $totalPoints = min($rawPoints, $maxPoints);
-        $subjectCount = $gradedSubjects->count();
-        $averagePoints = $subjectCount > 0 ? round($rawPoints / $subjectCount, 2) : 0;
+        $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
+        $combination = $enrollment?->subjectCombination;
+        $combination?->loadMissing('subjects');
 
+        $breakdown = UgandaGrading::uaceBreakdown($grades, $combination, $ranges);
+
+        // CHANGED (A-Level rebuild): was a flat all-subjects points list capped at 20 —
+        // now principals and subsidiaries are separated per the student's combination.
         return [
             'format' => 'a-level',
-            'format_label' => 'A-Level School Report',
-            'subjects' => $gradedSubjects,
+            'format_label' => 'A-Level School Report (UACE)',
+            // CHANGED (UACE paper rebuild): no paper results for this sitting — legacy
+            // blended display, shown as-is and flagged historical (never recomputed).
+            'paper_based' => false,
+            'legacy' => true,
+            'subjects' => collect($breakdown['principals']),
+            'subsidiaries' => collect($breakdown['subsidiaries']),
+            'excluded_subjects' => $breakdown['excluded'],
+            'combination_code' => $combination?->code,
+            'combination_name' => $combination?->name,
+            'has_combination' => $breakdown['has_combination'],
             'total_marks' => $totalMarks,
-            'total_points' => $totalPoints,
-            'raw_points' => $rawPoints,
-            'max_points' => $maxPoints,
-            'average_points' => $averagePoints,
-            'subject_count' => $subjectCount,
+            'average' => round($average, 2),
+            'principal_points' => $breakdown['principal_points'],
+            'subsidiary_points' => $breakdown['subsidiary_points'],
+            'total_points' => $breakdown['total_points'],
+            'max_points' => $breakdown['max_points'],
+            'subject_count' => count($breakdown['principals']) + count($breakdown['subsidiaries']),
             'position' => $position,
             'class_size' => $classSize,
             'remarks' => [

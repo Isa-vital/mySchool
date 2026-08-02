@@ -178,11 +178,106 @@ $oLevelCompNames[] = $comp['exam_name'];
     </tbody>
 </table>
 @else
+{{-- CHANGED (A-Level rebuild): UACE layout — principals (A-F, 6-0 pts) and subsidiaries (pass = 1 pt). --}}
+@if(!empty($formatted['combination_code']))
+<p style="font-size:10px; margin:2px 0 4px;"><strong>Combination:</strong> {{ $formatted['combination_code'] }} — {{ $formatted['combination_name'] }}</p>
+@elseif(!($formatted['has_combination'] ?? true))
+<p style="font-size:9px; color:#b45309; margin:2px 0 4px;">No subject combination assigned — all subjects graded as principals. Assign a combination for a correct UACE report.</p>
+@endif
+@if($formatted['paper_based'] ?? false)
+{{-- CHANGED (UACE paper rebuild): paper-level grading — one row per PAPER grouped under
+     its subject. INCOMPLETE / PENDING REVIEW print explicitly: never a blank or a guess. --}}
+@if($formatted['provisional'] ?? false)
+<p style="font-size:9px; color:#b45309; margin:2px 0 4px;"><strong>PROVISIONAL:</strong> one or more subjects await results or manual grade confirmation. Points and position are incomplete.</p>
+@endif
+<table class="grades">
+    <thead>
+        <tr>
+            <th style="width:32%;">Principal Subject</th>
+            <th style="width:22%;">Paper</th>
+            <th style="width:12%;">Mark</th>
+            <th style="width:12%;">Band</th>
+            <th style="width:12%;">Grade</th>
+            <th style="width:10%;">Points</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach(($formatted['subjects'] ?? []) as $subject)
+        @php
+        $paperRows = $subject['papers'] ?? [];
+        $rowCount = max(count($paperRows), 1);
+        $gradeLabel = match ($subject['status'] ?? 'graded') {
+        'graded' => $subject['grade'],
+        'incomplete' => 'INCOMPLETE',
+        default => 'PENDING REVIEW',
+        };
+        $pointsLabel = ($subject['status'] ?? '') === 'graded' ? $subject['points'] : '—';
+        @endphp
+        @forelse($paperRows as $paper)
+        <tr>
+            @if($loop->first)
+            <td rowspan="{{ $rowCount }}" style="vertical-align:middle;"><strong>{{ $subject['subject'] }}</strong></td>
+            @endif
+            <td>{{ $paper['label'] }}</td>
+            <td>{{ $paper['percentage'] !== null ? round($paper['percentage']) . '%' : '—' }}</td>
+            <td>{{ $paper['band'] }}</td>
+            @if($loop->first)
+            <td rowspan="{{ $rowCount }}" style="vertical-align:middle; {{ ($subject['status'] ?? '') !== 'graded' ? 'color:#b45309; font-size:8px;' : '' }}"><strong>{{ $gradeLabel }}</strong></td>
+            <td rowspan="{{ $rowCount }}" style="vertical-align:middle;">{{ $pointsLabel }}</td>
+            @endif
+        </tr>
+        @empty
+        <tr>
+            <td><strong>{{ $subject['subject'] }}</strong></td>
+            <td colspan="3">No papers recorded</td>
+            <td style="color:#b45309; font-size:8px;"><strong>{{ $gradeLabel }}</strong></td>
+            <td>{{ $pointsLabel }}</td>
+        </tr>
+        @endforelse
+        @endforeach
+    </tbody>
+</table>
+@if(count($formatted['subsidiaries'] ?? []) > 0)
+<table class="grades" style="margin-top:6px;">
+    <thead>
+        <tr>
+            <th style="width:54%;">Subsidiary Subject</th>
+            <th style="width:22%;">Mark</th>
+            <th style="width:12%;">Result</th>
+            <th style="width:12%;">Points</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($formatted['subsidiaries'] as $subsidiary)
+        @php
+        $subPaper = ($subsidiary['papers'] ?? [])[0] ?? null;
+        $subResult = match ($subsidiary['status'] ?? 'graded') {
+        'graded' => $subsidiary['grade'],
+        'incomplete' => 'INCOMPLETE',
+        default => 'PENDING REVIEW',
+        };
+        @endphp
+        <tr>
+            <td>{{ $subsidiary['subject'] }}</td>
+            <td>{{ $subPaper && $subPaper['percentage'] !== null ? round($subPaper['percentage']) . '%' : ($subPaper['band'] ?? '—') }}</td>
+            <td style="{{ ($subsidiary['status'] ?? '') !== 'graded' ? 'color:#b45309; font-size:8px;' : '' }}"><strong>{{ $subResult }}</strong></td>
+            <td>{{ ($subsidiary['status'] ?? '') === 'graded' ? $subsidiary['points'] : '—' }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+@else
+{{-- CHANGED (UACE paper rebuild): historical term without per-paper results — the old
+     blended figures are shown as-is and clearly flagged. They are NEVER recomputed. --}}
+@if($formatted['legacy'] ?? false)
+<p style="font-size:8px; color:#6b7280; margin:2px 0 4px; font-style:italic;">Historical record — graded under the previous blended-percentage method (before paper-level UACE grading).</p>
+@endif
 <table class="grades">
     <thead>
         <tr>
             <th style="width:6%;">#</th>
-            <th style="width:54%;">Subject</th>
+            <th style="width:54%;">Principal Subject</th>
             <th style="width:20%;">Marks</th>
             <th style="width:10%;">Grade</th>
             <th style="width:10%;">Points</th>
@@ -193,13 +288,38 @@ $oLevelCompNames[] = $comp['exam_name'];
         <tr>
             <td>{{ $i + 1 }}</td>
             <td>{{ $subject['subject'] }}</td>
-            <td>{{ $subject['marks'] }}</td>
+            <td>{{ $subject['marks'] }}%</td>
             <td><strong>{{ $subject['grade'] }}</strong></td>
             <td>{{ $subject['points'] }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
+@if(count($formatted['subsidiaries'] ?? []) > 0)
+<table class="grades" style="margin-top:6px;">
+    <thead>
+        <tr>
+            <th style="width:6%;">#</th>
+            <th style="width:54%;">Subsidiary Subject</th>
+            <th style="width:20%;">Marks</th>
+            <th style="width:10%;">Result</th>
+            <th style="width:10%;">Points</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($formatted['subsidiaries'] as $i => $subsidiary)
+        <tr>
+            <td>{{ $i + 1 }}</td>
+            <td>{{ $subsidiary['subject'] }}</td>
+            <td>{{ $subsidiary['marks'] }}%</td>
+            <td><strong>{{ $subsidiary['result'] }}</strong></td>
+            <td>{{ $subsidiary['points'] }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+@endif
+@endif
 @endif
 
 <div class="summary">
@@ -212,11 +332,11 @@ $oLevelCompNames[] = $comp['exam_name'];
     <p><strong>Average Points:</strong> {{ $formatted['average_points'] }}</p>
     <p><strong>Overall Competency:</strong> {{ $formatted['overall_grade'] }}</p>
     @else
-    <p><strong>Total Points:</strong> {{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}</p>
-    <p><strong>Raw Subject Points:</strong> {{ $formatted['raw_points'] }}</p>
-    <p><strong>Average Subject Points:</strong> {{ $formatted['average_points'] }}</p>
+    <p><strong>Principal Points:</strong> {{ $formatted['principal_points'] }}</p>
+    <p><strong>Subsidiary Points:</strong> {{ $formatted['subsidiary_points'] }}</p>
+    <p><strong>Total Points:</strong> {{ $formatted['total_points'] }} / {{ $formatted['max_points'] }}@if($formatted['provisional'] ?? false) <span style="color:#b45309;">(Provisional)</span>@endif</p>
     @endif
-    <p><strong>Position in Class:</strong> {{ $position ? $position . ' out of ' . $classSize : '-' }}</p>
+    <p><strong>Position in Class:</strong> {{ $position ? $position . ' out of ' . $classSize : (($formatted['provisional'] ?? false) ? 'Pending (provisional result)' : '-') }}</p>
     <p><strong>Conduct:</strong> {{ $reportCard->conduct ?? '-' }}</p>
 </div>
 

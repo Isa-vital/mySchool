@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\SubjectCombination;
+use Illuminate\Support\Collection;
+
 /**
  * Encapsulates Uganda national-examination grading rules (UNEB).
  *
@@ -214,6 +217,77 @@ class UgandaGrading
             $total += self::uaceGrade((float) $m)['points'];
         }
         return $total;
+    }
+
+    /**
+     * CHANGED (A-Level rebuild): split a student's composed grade rows into UACE
+     * principal (A-F, 6-0 pts) and subsidiary (pass = 1 pt) sections using their
+     * combination. No combination => everything graded as principal (legacy) and
+     * flagged so reports can warn. Subjects outside the combination are excluded.
+     */
+    public static function uaceBreakdown(Collection $grades, ?SubjectCombination $combination, array $ranges): array
+    {
+        $passMin = (float) setting('alevel_subsidiary_pass_min', 40);
+
+        $principalIds = [];
+        $subsidiaryIds = [];
+        if ($combination) {
+            foreach ($combination->subjects as $subject) {
+                if ($subject->pivot->is_principal) {
+                    $principalIds[] = (int) $subject->id;
+                } else {
+                    $subsidiaryIds[] = (int) $subject->id;
+                }
+            }
+        }
+
+        $principals = [];
+        $subsidiaries = [];
+        $excluded = [];
+        foreach ($grades as $grade) {
+            $marks = (float) ($grade->marks_obtained ?? 0);
+            // Composite rows carry the subject model; direct Grade rows carry subject_id.
+            $subjectId = (int) ($grade->subject_id ?? $grade->subject?->id ?? 0);
+            $subjectName = $grade->subject->name ?? '';
+
+            if (! $combination || in_array($subjectId, $principalIds, true)) {
+                $resolved = AssessmentGradingService::resolve($marks, $ranges);
+                $principals[] = [
+                    'subject' => $subjectName,
+                    'marks' => round($marks, 1),
+                    'grade' => (string) $resolved['grade'],
+                    'points' => (int) ($resolved['points'] ?? 0),
+                ];
+            } elseif (in_array($subjectId, $subsidiaryIds, true)) {
+                $pass = $marks >= $passMin;
+                $subsidiaries[] = [
+                    'subject' => $subjectName,
+                    'marks' => round($marks, 1),
+                    'result' => $pass ? 'Pass' : 'Fail',
+                    'points' => $pass ? 1 : 0,
+                ];
+            } else {
+                $excluded[] = $subjectName;
+            }
+        }
+
+        $maxPerPrincipal = (int) max(array_map(fn($r) => (float) ($r['points'] ?? 0), $ranges) ?: [6]);
+        $principalSlots = $combination ? count($principalIds) : count($principals);
+        $subsidiarySlots = $combination ? count($subsidiaryIds) : count($subsidiaries);
+
+        $principalPoints = (int) array_sum(array_column($principals, 'points'));
+        $subsidiaryPoints = (int) array_sum(array_column($subsidiaries, 'points'));
+
+        return [
+            'principals' => $principals,
+            'subsidiaries' => $subsidiaries,
+            'excluded' => $excluded,
+            'principal_points' => $principalPoints,
+            'subsidiary_points' => $subsidiaryPoints,
+            'total_points' => $principalPoints + $subsidiaryPoints,
+            'max_points' => ($principalSlots * $maxPerPrincipal) + $subsidiarySlots,
+            'has_combination' => (bool) $combination,
+        ];
     }
 
     /**

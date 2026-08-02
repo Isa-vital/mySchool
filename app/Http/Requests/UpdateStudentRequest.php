@@ -36,6 +36,7 @@ class UpdateStudentRequest extends FormRequest
             'status' => 'nullable|in:active,graduated,transferred,withdrawn,suspended',
             'boarding_status' => 'nullable|in:day,boarding',
             'photo' => 'nullable|image|max:2048',
+            'subject_combination_id' => 'nullable|exists:subject_combinations,id',
         ];
     }
 }

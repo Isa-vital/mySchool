@@ -49,7 +49,7 @@
 
         {{-- Academics --}}
         @canany(['academic_years.view', 'classes.view', 'subjects.view', 'timetable.view'])
-        <x-sidebar-group label="Academics" icon="academic-cap" :active="request()->routeIs('academic-years.*', 'classes.*', 'sections.*', 'subjects.*', 'timetable.*')">
+        <x-sidebar-group label="Academics" icon="academic-cap" :active="request()->routeIs('academic-years.*', 'classes.*', 'sections.*', 'subjects.*', 'subject-combinations.*', 'timetable.*')">
             @can('academic_years.view')
             <x-sidebar-sublink href="{{ route('academic-years.index') }}" :active="request()->routeIs('academic-years.*')">Academic Years</x-sidebar-sublink>
             @endcan
@@ -58,6 +58,9 @@
             @endcan
             @can('subjects.view')
             <x-sidebar-sublink href="{{ route('subjects.index') }}" :active="request()->routeIs('subjects.*')">Subjects</x-sidebar-sublink>
+            @endcan
+            @can('subjects.view')
+            <x-sidebar-sublink href="{{ route('subject-combinations.index') }}" :active="request()->routeIs('subject-combinations.*')">A-Level Combinations</x-sidebar-sublink>
             @endcan
             @can('timetable.view')
             <x-sidebar-sublink href="{{ route('timetable.index') }}" :active="request()->routeIs('timetable.*')">Timetable</x-sidebar-sublink>
@@ -74,12 +77,19 @@
 
         {{-- Exams & Grades --}}
         @canany(['exams.view', 'grades.view', 'report_cards.view'])
-        <x-sidebar-group label="Examinations" icon="document-text" :active="request()->routeIs('exams.*', 'grades.*', 'report-cards.*')">
+        <x-sidebar-group label="Examinations" icon="document-text" :active="request()->routeIs('exams.*', 'grades.*', 'report-cards.*', 'uace-review.*', 'uace-cycles.*')">
             @can('exams.view')
             <x-sidebar-sublink href="{{ route('exams.index') }}" :active="request()->routeIs('exams.*')">Exams</x-sidebar-sublink>
             @endcan
             @can('grades.view')
             <x-sidebar-sublink href="{{ route('grades.index') }}" :active="request()->routeIs('grades.*')">Grades / Marks</x-sidebar-sublink>
+            @endcan
+            {{-- CHANGED (UACE paper rebuild): manual review queue + versioned rulesets --}}
+            @can('grades.edit')
+            <x-sidebar-sublink href="{{ route('uace-review.index') }}" :active="request()->routeIs('uace-review.*')">UACE Review Queue</x-sidebar-sublink>
+            @endcan
+            @can('settings.view')
+            <x-sidebar-sublink href="{{ route('uace-cycles.index') }}" :active="request()->routeIs('uace-cycles.*')">UACE Rulesets</x-sidebar-sublink>
             @endcan
             @can('report_cards.view')
             <x-sidebar-sublink href="{{ route('report-cards.index') }}" :active="request()->routeIs('report-cards.*')">Report Cards</x-sidebar-sublink>

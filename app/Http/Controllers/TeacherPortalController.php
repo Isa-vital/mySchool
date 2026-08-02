@@ -203,6 +203,7 @@ class TeacherPortalController extends Controller
                 ->where('school_class_id', $selectedClassId)
                 ->where('academic_year_id', $exam->academic_year_id)
                 ->where('status', 'active')
+                ->takingSubject($class, $selectedSubjectId)
                 ->get();
             $students = $enrollments->pluck('student');
 

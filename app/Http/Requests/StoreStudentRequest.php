@@ -38,6 +38,7 @@ class StoreStudentRequest extends FormRequest
             'photo' => 'nullable|image|max:2048',
             'class_id' => 'nullable|exists:school_classes,id',
             'section_id' => 'nullable|exists:sections,id',
+            'subject_combination_id' => 'nullable|exists:subject_combinations,id',
             'guardian_first_name' => 'nullable|string|max:255',
             'guardian_last_name' => 'nullable|string|max:255',
             'guardian_relationship' => 'nullable|string|max:50',

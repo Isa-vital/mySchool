@@ -59,7 +59,8 @@ class StudentController extends Controller
         $academicYear = AcademicYear::current();
         // CHANGED: suggest the next sequential admission number (e.g. ADM00152 -> ADM00153)
         $nextAdmissionNumber = Student::nextAdmissionNumber();
-        return view('students.create', compact('classes', 'academicYear', 'nextAdmissionNumber'));
+        $combinations = \App\Models\SubjectCombination::active()->orderBy('code')->get();
+        return view('students.create', compact('classes', 'academicYear', 'nextAdmissionNumber', 'combinations'));
     }
 
     public function store(StoreStudentRequest $request)
@@ -99,11 +100,21 @@ class StudentController extends Controller
         if ($request->filled('class_id')) {
             $currentYear = AcademicYear::current();
             if ($currentYear) {
+                $class = SchoolClass::find($request->class_id);
+                $isALevel = $class && $class->category() === 'a_level';
+                // A-Level students must register on a subject combination.
+                if ($isALevel && ! $request->filled('subject_combination_id')) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'subject_combination_id' => 'S.5/S.6 students must be assigned a subject combination.',
+                    ]);
+                }
+
                 Enrollment::create([
                     'student_id' => $student->id,
                     'school_class_id' => $request->class_id,
                     'section_id' => $request->section_id,
                     'academic_year_id' => $currentYear->id,
+                    'subject_combination_id' => $isALevel ? $request->subject_combination_id : null,
                     'status' => 'active',
                 ]);
             }
@@ -139,7 +150,8 @@ class StudentController extends Controller
         $classes = SchoolClass::active()->with('sections')->orderBy('level')->get();
         $student->load('guardians');
         $currentEnrollment = $student->currentEnrollment();
-        return view('students.edit', compact('student', 'classes', 'currentEnrollment'));
+        $combinations = \App\Models\SubjectCombination::active()->orderBy('code')->get();
+        return view('students.edit', compact('student', 'classes', 'currentEnrollment', 'combinations'));
     }
 
     public function update(UpdateStudentRequest $request, Student $student)
@@ -159,6 +171,14 @@ class StudentController extends Controller
         }
 
         $student->update($validated);
+
+        // A-Level combination lives on the current enrollment, not the student.
+        if ($request->filled('subject_combination_id')) {
+            $enrollment = $student->currentEnrollment();
+            if ($enrollment && $enrollment->schoolClass?->category() === 'a_level') {
+                $enrollment->update(['subject_combination_id' => $request->subject_combination_id]);
+            }
+        }
 
         return redirect()->route('students.show', $student)->with('success', 'Student updated successfully.');
     }
