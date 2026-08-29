@@ -143,23 +143,40 @@ $oLevelCompNames[] = $comp['exam_name'];
 }
 }
 }
+// activity columns: every logged slot across the class (A1..An, not a fixed count)
+$activityCount = (int) collect($formatted['subjects'] ?? [])->map(fn($s) => empty($s['activities']) ? 0 : max(array_keys($s['activities'])))->max();
+$caTotal = (int) ($formatted['ca_total'] ?? 20);
+$eotTotal = (int) ($formatted['eot_total'] ?? 80);
 @endphp
 <table class="grades">
     <thead>
         <tr>
-            <th style="width:6%;">#</th>
-            <th style="width:{{ $hasOLevelComponents ? 25 : 59 }}%;">Subject</th>
+            <th style="width:4%;">#</th>
+            <th style="width:{{ $hasOLevelComponents ? 16 : 22 }}%;">Subject</th>
             @if($hasOLevelComponents)
             @foreach($oLevelCompNames as $compName)
-            <th style="width:{{ floor(45 / count($oLevelCompNames)) }}%;">{{ substr($compName, 0, 15) }}</th>
+            <th>{{ substr($compName, 0, 12) }}</th>
             @endforeach
             @endif
-            <th style="width:14%;">Grade</th>
-            <th style="width:12%;">Points</th>
+            @for($n = 1; $n <= $activityCount; $n++)
+            <th>A{{ $n }}</th>
+            @endfor
+            <th style="width:6%;">AVG</th>
+            <th style="width:6%;">Ident</th>
+            <th style="width:8%;">CA (/{{ $caTotal }})</th>
+            <th style="width:8%;">EOT (/{{ $eotTotal }})</th>
+            <th style="width:8%;">Final</th>
+            <th style="width:7%;">Grade</th>
+            <th style="width:7%;">Points</th>
         </tr>
     </thead>
     <tbody>
         @foreach(($formatted['subjects'] ?? []) as $i => $subject)
+        @php
+        // INCOMPLETE / NOT YET ASSESSED print explicitly — never a blank cell or a silent E
+        $rowStatus = $subject['status'] ?? 'graded';
+        $stateLabel = match ($rowStatus) { 'incomplete' => 'INCOMPLETE', 'not_yet_assessed' => 'NOT YET ASSESSED', default => null };
+        @endphp
         <tr>
             <td>{{ $i + 1 }}</td>
             <td>{{ $subject['subject'] }}</td>
@@ -168,15 +185,56 @@ $oLevelCompNames[] = $comp['exam_name'];
             @php
             $comp = collect($subject['components'] ?? [])->firstWhere('exam_name', $compName);
             @endphp
-            <td>{{ $comp ? $comp['grade'] . ' (' . $comp['points'] . 'pt)' : '-' }}</td>
+            <td>{{ $comp ? $comp['grade'] . ' (' . $comp['points'] . 'pt)' : '—' }}</td>
             @endforeach
             @endif
+            @for($n = 1; $n <= $activityCount; $n++)
+            <td>{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
+            @endfor
+            <td>{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
+            <td>{{ $subject['identifier'] ?? '' }}</td>
+            <td>{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
+            <td>{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
+            @if($stateLabel)
+            <td colspan="3" style="color:#b45309; font-size:8px;"><strong>{{ $stateLabel }}</strong></td>
+            @else
+            <td><strong>{{ $subject['final_mark'] !== null ? round($subject['final_mark']) : '—' }}</strong></td>
             <td><strong>{{ $subject['grade'] }}</strong></td>
             <td><strong>{{ $subject['points'] }}</strong></td>
+            @endif
+        </tr>
+        @endforeach
+        <tr>
+            {{-- Total Points states its own denominator: resolved subjects only --}}
+            <td colspan="{{ 2 + ($hasOLevelComponents ? count($oLevelCompNames) : 0) + $activityCount + 4 }}" style="text-align:right;"><strong>Total Points:</strong></td>
+            <td colspan="3"><strong>{{ $formatted['total_points'] }} / ({{ $formatted['resolved_subject_count'] }} subjects &times; {{ $formatted['max_points_per_subject'] }})</strong></td>
+        </tr>
+    </tbody>
+</table>
+@php
+$projectRows = collect($formatted['subjects'] ?? [])->filter(fn($s) => $s['project_score_raw'] !== null)->values();
+@endphp
+@if($projectRows->isNotEmpty())
+{{-- Project work: own score and grade — never merged into the subject's final mark --}}
+<table class="grades" style="margin-top:6px;">
+    <thead>
+        <tr>
+            <th style="width:60%;">Project Work — Subject</th>
+            <th style="width:20%;">Score</th>
+            <th style="width:20%;">Grade</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($projectRows as $projectRow)
+        <tr>
+            <td>{{ $projectRow['subject'] }}</td>
+            <td>{{ number_format($projectRow['project_score_raw'], 1) }} / {{ (int) $projectRow['project_score_max'] }}</td>
+            <td><strong>{{ $projectRow['project_grade'] ?? '—' }}</strong></td>
         </tr>
         @endforeach
     </tbody>
 </table>
+@endif
 @else
 {{-- CHANGED (A-Level rebuild): UACE layout — principals (A-F, 6-0 pts) and subsidiaries (pass = 1 pt). --}}
 @if(!empty($formatted['combination_code']))
@@ -328,9 +386,10 @@ $oLevelCompNames[] = $comp['exam_name'];
     <p><strong>Overall Performance:</strong> {{ $formatted['overall_grade'] }}</p>
     <p><strong>Subjects Taken:</strong> {{ count($formatted['subjects'] ?? []) }}</p>
     @elseif(($formatted['format'] ?? 'primary') === 'o-level')
-    <p><strong>Total Points:</strong> {{ $formatted['total_points'] }}</p>
+    {{-- Total Points states its denominator: only subjects with a resolved grade count --}}
+    <p><strong>Total Points:</strong> {{ $formatted['total_points'] }} / ({{ $formatted['resolved_subject_count'] }} subjects &times; {{ $formatted['max_points_per_subject'] }})</p>
     <p><strong>Average Points:</strong> {{ $formatted['average_points'] }}</p>
-    <p><strong>Overall Competency:</strong> {{ $formatted['overall_grade'] }}</p>
+    <p><strong>Overall Competency:</strong> {{ $formatted['overall_grade'] ?? 'NOT YET ASSESSED' }}@if(!empty($formatted['overall_descriptor']) && $formatted['overall_grade']) — {{ $formatted['overall_descriptor'] }}@endif</p>
     @else
     <p><strong>Principal Points:</strong> {{ $formatted['principal_points'] }}</p>
     <p><strong>Subsidiary Points:</strong> {{ $formatted['subsidiary_points'] }}</p>

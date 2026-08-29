@@ -32,11 +32,14 @@ class UgandaGrading
 
     /**
      * O-level curriculum points mapped from competency levels.
-     * Lower points indicate better performance.
+     * Higher points indicate better performance (A=4 … E=0).
      */
     public static function oLevelCompetencyPoints(string $level): int
     {
-        $defaultMap = ['A' => 1, 'B' => 2, 'C' => 3, 'D' => 4, 'E' => 5];
+        // Corrected from the inverted A=1..E=5 map — an E student scored MORE
+        // points than an A student. Confirmed scale (real report card): A=4..E=0.
+        // $defaultMap = ['A' => 1, 'B' => 2, 'C' => 3, 'D' => 4, 'E' => 5];
+        $defaultMap = ['A' => 4, 'B' => 3, 'C' => 2, 'D' => 1, 'E' => 0];
 
         // CHANGED: allow schools to align to official circular updates without code changes.
         $configured = setting('olevel_competency_points', null);
@@ -79,17 +82,22 @@ class UgandaGrading
     }
 
     /**
-     * O-level overall competency level from average points.
+     * O-level overall competency level from the average PERCENTAGE mark.
+     * Delegates to the same configurable bands each subject is graded with, so the
+     * overall grade can never disagree with the report summary.
      */
-    public static function oLevelOverallLevel(float $avgPoints): string
+    public static function oLevelOverallLevel(float $averagePercentage): string
     {
-        return match (true) {
-            $avgPoints <= 1.5 => 'A',
-            $avgPoints <= 2.5 => 'B',
-            $avgPoints <= 3.5 => 'C',
-            $avgPoints <= 4.5 => 'D',
-            default => 'E',
-        };
+        // The old points-based thresholds could disagree with the report summary's
+        // percentage-based overall grade for the same student:
+        // return match (true) {
+        //     $avgPoints <= 1.5 => 'A',
+        //     $avgPoints <= 2.5 => 'B',
+        //     $avgPoints <= 3.5 => 'C',
+        //     $avgPoints <= 4.5 => 'D',
+        //     default => 'E',
+        // };
+        return self::oLevelCompetencyLevel($averagePercentage);
     }
 
     /**
@@ -155,20 +163,21 @@ class UgandaGrading
 
     /**
      * UCE aggregate from best 8 subjects' grade values (1-9 each), range 8-72.
+     * HISTORICAL ONLY: retired with the CBC transition — must not feed current
+     * S.4 report labels (see nationalResult()). Kept for pre-CBC records.
      */
     public static function uceAggregate(array $gradeValues): int
     {
-        // CHANGED: legacy UCE aggregate retained for backward compatibility.
         sort($gradeValues);
         return (int) array_sum(array_slice($gradeValues, 0, 8));
     }
 
     /**
      * UCE division from aggregate (legacy O-level grouping).
+     * HISTORICAL ONLY: divisions were retired with the CBC transition.
      */
     public static function uceDivision(int $aggregate): string
     {
-        // CHANGED: legacy UCE divisions retained for backward compatibility.
         return match (true) {
             $aggregate >= 8 && $aggregate <= 32 => 'Division 1',
             $aggregate >= 33 && $aggregate <= 45 => 'Division 2',
@@ -302,16 +311,25 @@ class UgandaGrading
             return ['label' => null, 'aggregate' => null];
         }
 
-        $values = array_map(fn($m) => self::subjectGrade((float) $m)['value'], $marks);
-
         return match ($nationalExam) {
-            'PLE' => (function () use ($values) {
+            'PLE' => (function () use ($marks) {
+                // Stanine conversion is now PLE-only (UCE no longer uses it).
+                $values = array_map(fn($m) => self::subjectGrade((float) $m)['value'], $marks);
                 $agg = self::pleAggregate($values);
                 return ['label' => self::pleDivision($agg), 'aggregate' => $agg];
             })(),
-            'UCE' => (function () use ($values) {
-                $agg = self::uceAggregate($values);
-                return ['label' => self::uceDivision($agg), 'aggregate' => $agg];
+            'UCE' => (function () use ($marks) {
+                // Divisions and D1-F9 stanines were retired for UCE with the CBC
+                // transition — S.4 now reports the competency-based overall level
+                // from the same path as regular subject grading. Legacy path:
+                // $agg = self::uceAggregate($values);
+                // return ['label' => self::uceDivision($agg), 'aggregate' => $agg];
+                $avg = array_sum($marks) / count($marks);
+                $result = self::oLevelSubjectResult($avg);
+                return [
+                    'label' => 'Achievement Level ' . $result['level'] . ' — ' . $result['description'],
+                    'aggregate' => null,
+                ];
             })(),
             'UACE' => (function () use ($marks) {
                 $points = self::uacePoints($marks);

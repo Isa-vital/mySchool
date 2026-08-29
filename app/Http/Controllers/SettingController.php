@@ -17,6 +17,12 @@ class SettingController extends Controller
         'ple_stanine_scale',
     ];
 
+    // O-Level activity/CA layer configs (different JSON shape than the scale keys).
+    protected array $jsonConfigKeys = [
+        'activity_scale_config',
+        'ca_weight_config',
+    ];
+
     public function index()
     {
         $settings = Setting::allGrouped();
@@ -33,6 +39,10 @@ class SettingController extends Controller
 
             if (in_array($key, $this->jsonScaleKeys, true)) {
                 $this->validateJsonScaleSetting($key, $value);
+            }
+
+            if (in_array($key, $this->jsonConfigKeys, true)) {
+                $this->validateJsonConfigSetting($key, $value);
             }
 
             if ($setting->type === 'image' && $request->hasFile($key)) {
@@ -153,6 +163,31 @@ class SettingController extends Controller
                 is_array($item) && isset($item['grade'], $item['min'], $item['max']),
                 422,
                 "Each grading band in {$key} must include grade, min and max (item " . ($index + 1) . ")."
+            );
+        }
+    }
+
+    protected function validateJsonConfigSetting(string $key, mixed $value): void
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return;
+        }
+
+        $decoded = json_decode($value, true);
+        abort_unless(is_array($decoded), 422, "Invalid JSON provided for {$key}.");
+
+        if ($key === 'activity_scale_config') {
+            $max = (float) ($decoded['activity_max_score'] ?? 0);
+            abort_unless($max > 0, 422, 'activity_scale_config requires a positive activity_max_score.');
+        }
+
+        if ($key === 'ca_weight_config') {
+            $ca = (float) ($decoded['ca'] ?? 0);
+            $eot = (float) ($decoded['eot'] ?? 0);
+            abort_unless(
+                $ca > 0 && $eot > 0 && abs($ca + $eot - 100) < 0.001,
+                422,
+                'ca_weight_config requires positive ca and eot weights that sum to 100.'
             );
         }
     }

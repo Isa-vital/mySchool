@@ -85,6 +85,11 @@
     'selectedClassId' => $selectedClassId,
     ])
     @else
+    @if($isOLevel ?? false)
+    {{-- O-Level (UCE): activity/CA entry replaces the single-mark form — the final
+         mark is computed (CA + EOT), never typed directly. --}}
+    @include('grades.partials.olevel-entry')
+    @else
     {{-- CHANGED: replaced the static marks table with the reusable <x-grade-entry-form> component
          (live grade preview, keyboard nav, progress bar, unsaved-changes guard, save confirmation). --}}
     <x-grade-entry-form
@@ -99,6 +104,7 @@
         :full-marks="$fullMarks"
         :pass-marks="$passMarks"
         :exam="$exam" />
+    @endif
 
     {{-- CHANGED: original static table preserved for reference
     <form method="POST" action="{{ route('grades.save', $exam) }}">

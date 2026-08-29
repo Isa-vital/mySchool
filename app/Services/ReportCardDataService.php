@@ -152,8 +152,8 @@ class ReportCardDataService
         }
 
         // Uganda national result (only for P.7 / S.4 / S.6).
-        // TODO: pending decision on S.4 projection feature — for S.4 this currently
-        // returns the LEGACY stanine-based UCE division, which is outdated post-2020.
+        // S.4 now reports the competency-based achievement level — the legacy
+        // stanine/aggregate/division path was retired for UCE (CBC transition).
         $national = UgandaGrading::nationalResult($schoolClass?->nationalExam(), $marks);
 
         return [

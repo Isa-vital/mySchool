@@ -277,6 +277,40 @@ class GradeController extends Controller
         // CHANGED: class-aware ranges so 'auto' format previews correctly.
         $gradingRanges = collect(AssessmentGradingService::previewRangesForExam($exam, $class));
 
+        // O-Level activity/CA layer: activities (out of activity_max), teacher-entered
+        // identifier (1/2/3) and EOT score replace the single-mark input.
+        $isOLevel = $class && AssessmentGradingService::resolveFormat($exam->assessment_format, $class) === 'o-level';
+        $activityMax = AssessmentGradingService::activityMaxScore();
+        $caWeights = AssessmentGradingService::caWeights();
+        $activityColumns = 3;
+        $activityScores = [];   // [student_id][activity_number] => raw_score
+        $enrollmentIds = [];    // student_id => enrollment_id
+        if ($isOLevel && $selectedClassId && $selectedSubjectId) {
+            $enrollmentIds = Enrollment::where('school_class_id', $selectedClassId)
+                ->where('academic_year_id', $exam->academic_year_id)
+                ->where('status', 'active')
+                ->pluck('id', 'student_id')
+                ->all();
+
+            $existingActivities = \App\Models\ActivityScore::where('exam_id', $exam->id)
+                ->where('subject_id', $selectedSubjectId)
+                ->whereIn('enrollment_id', array_values($enrollmentIds))
+                ->get();
+
+            $studentByEnrollment = array_flip($enrollmentIds);
+            foreach ($existingActivities as $score) {
+                $studentId = $studentByEnrollment[$score->enrollment_id] ?? null;
+                if ($studentId !== null && $score->status === 'scored') {
+                    $activityScores[$studentId][(int) $score->activity_number] = (float) $score->raw_score;
+                }
+            }
+
+            // Activity slots are not a fixed count: show every logged slot plus one
+            // spare column so the next activity can always be entered.
+            $maxLogged = (int) $existingActivities->max('activity_number');
+            $activityColumns = max(3, $maxLogged + 1);
+        }
+
         // CHANGED (A6): subjects with weighted components (Paper 1/2 …) use a
         // component-columns entry table instead of the single-score form.
         $subjectComponents = $subject ? $subject->components()->get() : collect();
@@ -314,7 +348,7 @@ class GradeController extends Controller
             $nextSubject = $ordered->first(fn($p) => ! $p['complete'] && ! $p['current'])['subject'] ?? null;
         }
 
-        return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectProgress', 'nextSubject', 'subjectComponents', 'existingComponentMarks', 'noCombinationCount'));
+        return view('grades.enter', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectProgress', 'nextSubject', 'subjectComponents', 'existingComponentMarks', 'noCombinationCount', 'isOLevel', 'activityMax', 'caWeights', 'activityColumns', 'activityScores', 'enrollmentIds'));
     }
 
     public function save(SaveGradesRequest $request, Exam $exam)
@@ -349,6 +383,13 @@ class GradeController extends Controller
         // class-appropriate scale (primary/o-level/a-level).
         $gradeClass = SchoolClass::find((int) $request->class_id);
 
+        // O-Level path: activities + identifier + EOT are the entry unit; the final
+        // mark is computed (never typed) via computeOLevelFinalMark.
+        if ($gradeClass && AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
+            && $request->boolean('olevel_entry')) {
+            return $this->saveOLevel($request, $exam, $gradeClass);
+        }
+
         foreach ($request->grades as $gradeData) {
             if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {
                 $marks = (float) $gradeData['marks_obtained'];
@@ -380,5 +421,22 @@ class GradeController extends Controller
             'class_id' => $request->class_id,
             'subject_id' => $request->subject_id,
         ])->with('success', 'Grades saved successfully.');
+    }
+
+    /**
+     * O-Level (UCE) save — delegates to the shared OLevelMarksService (same path
+     * the teacher portal uses, so the two can never drift apart).
+     */
+    private function saveOLevel(SaveGradesRequest $request, Exam $exam, SchoolClass $gradeClass)
+    {
+        $subject = Subject::findOrFail((int) $request->subject_id);
+
+        \App\Services\OLevelMarksService::save($exam, $gradeClass, $subject, (array) $request->grades, (int) auth()->id());
+
+        return redirect()->route('grades.enter', [
+            'exam' => $exam->id,
+            'class_id' => $request->class_id,
+            'subject_id' => $request->subject_id,
+        ])->with('success', 'O-Level assessment saved: activities, identifiers, project work and EOT scores recorded.');
     }
 }

@@ -44,7 +44,7 @@ class Student extends Model
      */
     public static function nextAdmissionNumber(): string
     {
-        // CHANGED: honor the admission_number_prefix setting instead of always
+        //  honor the admission_number_prefix setting instead of always
         // re-using the prefix of the last student (which kept it stuck on "ADM").
         $prefix = trim((string) setting('admission_number_prefix', 'ADM'));
         if ($prefix === '') {
@@ -59,7 +59,7 @@ class Student extends Model
             ->orderByDesc('id')
             ->value('admission_number');
 
-        // CHANGED: previous logic read the last student regardless of prefix:
+        // previous logic read the last student regardless of prefix:
         // $last = static::orderByDesc('id')->value('admission_number');
         // if ($last && preg_match('/^([A-Za-z]*)(\d+)$/', $last, $m)) {
         //     if ($m[1] !== '') { $prefix = $m[1]; }

@@ -231,13 +231,43 @@ class TeacherPortalController extends Controller
         // CHANGED: class-aware ranges so 'auto' format previews correctly.
         $gradingRanges = collect(\App\Services\AssessmentGradingService::previewRangesForExam($exam, $class));
 
+        // O-Level activity/CA layer: same entry grid as the admin Grades screen.
+        $isOLevel = $class && \App\Services\AssessmentGradingService::resolveFormat($exam->assessment_format, $class) === 'o-level';
+        $activityMax = \App\Services\AssessmentGradingService::activityMaxScore();
+        $caWeights = \App\Services\AssessmentGradingService::caWeights();
+        $activityColumns = 3;
+        $activityScores = [];
+        if ($isOLevel && $selectedClassId && $selectedSubjectId) {
+            $enrollmentIds = Enrollment::where('school_class_id', $selectedClassId)
+                ->where('academic_year_id', $exam->academic_year_id)
+                ->where('status', 'active')
+                ->pluck('id', 'student_id')
+                ->all();
+
+            $existingActivities = \App\Models\ActivityScore::where('exam_id', $exam->id)
+                ->where('subject_id', $selectedSubjectId)
+                ->whereIn('enrollment_id', array_values($enrollmentIds))
+                ->get();
+
+            $studentByEnrollment = array_flip($enrollmentIds);
+            foreach ($existingActivities as $score) {
+                $studentId = $studentByEnrollment[$score->enrollment_id] ?? null;
+                if ($studentId !== null && $score->status === 'scored') {
+                    $activityScores[$studentId][(int) $score->activity_number] = (float) $score->raw_score;
+                }
+            }
+
+            // Every logged slot plus one spare column.
+            $activityColumns = max(3, (int) $existingActivities->max('activity_number') + 1);
+        }
+
         // CHANGED (A6): subjects with weighted components use the component-columns table.
         $subjectComponents = $subject ? $subject->components()->get() : collect();
         $existingComponentMarks = ($subject && $subjectComponents->isNotEmpty() && $selectedClassId)
             ? \App\Services\ComponentMarksService::existingMarks($exam, (int) $selectedClassId, $subject)
             : collect();
 
-        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectComponents', 'existingComponentMarks'));
+        return view('teacher-portal.enter-grades', compact('exam', 'classes', 'students', 'existingGrades', 'subjects', 'subject', 'selectedClassId', 'selectedSubjectId', 'gradingRanges', 'fullMarks', 'passMarks', 'subjectComponents', 'existingComponentMarks', 'isOLevel', 'activityMax', 'caWeights', 'activityColumns', 'activityScores'));
     }
 
     public function saveGrades(Request $request, Exam $exam)
@@ -274,11 +304,32 @@ class TeacherPortalController extends Controller
             'grades.*.student_id' => 'required|exists:students,id',
             'grades.*.marks_obtained' => 'nullable|numeric|min:0|max:500',
             'grades.*.remarks' => 'nullable|string|max:500',
+            'olevel_entry' => 'nullable|boolean',
+            'grades.*.activities' => 'nullable|array',
+            'grades.*.activities.*' => 'nullable|numeric|min:0|max:' . \App\Services\AssessmentGradingService::activityMaxScore(),
+            'grades.*.identifier' => 'nullable|integer|in:1,2,3',
+            'grades.*.eot_raw_score' => 'nullable|numeric|min:0|max:' . \App\Services\AssessmentGradingService::caWeights()['eot'],
+            'grades.*.eot_status' => 'nullable|in:scored,absent,withheld',
+            'grades.*.project_score_raw' => 'nullable|numeric|min:0|max:' . \App\Services\AssessmentGradingService::projectMaxScore(),
         ]);
 
         // CHANGED: resolve against the selected class so 'auto' format uses the
         // class-appropriate scale (primary/o-level/a-level).
         $gradeClass = SchoolClass::find((int) $request->class_id);
+
+        // O-Level path: same shared save as the admin Grades screen — the final
+        // mark is computed (CA + EOT), never typed.
+        if ($gradeClass && \App\Services\AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
+            && $request->boolean('olevel_entry')) {
+            $subject = Subject::findOrFail((int) $request->subject_id);
+            \App\Services\OLevelMarksService::save($exam, $gradeClass, $subject, (array) $request->grades, (int) auth()->id());
+
+            return redirect()->route('teacher.enter-grades', [
+                'exam' => $exam->id,
+                'class_id' => $request->class_id,
+                'subject_id' => $request->subject_id,
+            ])->with('success', 'O-Level assessment saved: activities, identifiers, project work and EOT scores recorded.');
+        }
 
         foreach ($request->grades as $gradeData) {
             if (isset($gradeData['marks_obtained']) && $gradeData['marks_obtained'] !== null && $gradeData['marks_obtained'] !== '') {

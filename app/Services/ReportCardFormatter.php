@@ -27,7 +27,8 @@ class ReportCardFormatter
         // CHANGED: was `match ($exam->assessment_format)` — now resolves 'auto' via the class.
         return match (AssessmentGradingService::resolveFormat($exam->assessment_format, $schoolClass)) {
             'primary' => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
-            'o-level' => self::formatOLevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
+            // enrollment carries the activity/CA layer for o-level
+            'o-level' => self::formatOLevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass, $enrollment),
             'a-level' => self::formatALevel($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass, $enrollment, $uace),
             default => self::formatPrimary($grades, $totalMarks, $average, $position, $classSize, $exam, $schoolClass),
         };
@@ -98,8 +99,11 @@ class ReportCardFormatter
 
     /**
      * O-LEVEL FORMAT (new curriculum): Competency-based scoring.
-     * Shows grade (A-E) + points (1-5, lower is better) + descriptors.
-     * For composite reports: aggregates competency scores across component exams.
+     * Every subject routes through AssessmentGradingService::computeOLevelFinalMark
+     * (single grading path: activity/CA layer, legacy single-mark rows, and null
+     * marks all resolve there). Shows grade (A-E) + points (4-0, higher is better),
+     * CA/EOT breakdown, teacher-entered identifier and explicit INCOMPLETE /
+     * NOT YET ASSESSED states. Composite reports aggregate component exams.
      */
     private static function formatOLevel(
         Collection $grades,
@@ -108,15 +112,15 @@ class ReportCardFormatter
         ?int $position,
         ?int $classSize,
         Exam $exam,
-        ?SchoolClass $schoolClass = null // CHANGED: class-aware ranges for 'auto' format
+        ?SchoolClass $schoolClass = null,
+        $enrollment = null // carries the activity/CA layer context
     ): array {
         $ranges = AssessmentGradingService::rangesForExam($exam, $schoolClass);
+        $weights = AssessmentGradingService::caWeights();
+        $activityMax = AssessmentGradingService::activityMaxScore();
 
-        $gradedSubjects = $grades->map(function ($grade) use ($ranges) {
-            $marks = $grade->marks_obtained ?? 0;
-            $subjectResult = AssessmentGradingService::resolve($marks, $ranges);
-
-            // Include component breakdown for multi-term display
+        $gradedSubjects = $grades->map(function ($grade) use ($ranges, $exam, $enrollment, $weights, $activityMax) {
+            // Component breakdown for composite (multi-exam) reports.
             $components = [];
             if (is_object($grade) && isset($grade->components) && is_array($grade->components)) {
                 $components = collect($grade->components)
@@ -137,34 +141,93 @@ class ReportCardFormatter
                     ->all();
             }
 
+            $isGradeRow = $grade instanceof \App\Models\Grade;
+
+            if ($isGradeRow && $enrollment && $grade->subject) {
+                // Direct Grade rows: full activity/CA computation (also covers legacy
+                // single-mark rows and null marks in the same method).
+                $result = AssessmentGradingService::computeOLevelFinalMark($enrollment, $grade->subject, $exam, $grade, $ranges);
+            } else {
+                // Composite rows are pre-blended percentages; band null-safely.
+                $marks = $grade->marks_obtained !== null ? (float) $grade->marks_obtained : null;
+                $result = AssessmentGradingService::resolveMark($marks, $ranges) + [
+                    'activity_scores' => [],
+                    'activity_avg' => null,
+                    'activity_max' => $activityMax,
+                    'ca_mark' => null,
+                    'ca_total' => $weights['ca'],
+                    'eot_raw_score' => null,
+                    'eot_max_score' => $weights['eot'],
+                    'eot_total' => $weights['eot'],
+                    'eot_status' => null,
+                    'identifier' => $isGradeRow ? $grade->identifier : null,
+                    'project_score_raw' => null,
+                    'project_score_max' => AssessmentGradingService::projectMaxScore(),
+                    'project_status' => null,
+                    'project_grade' => null,
+                    'final_mark' => $marks,
+                ];
+            }
+
             return [
                 'subject' => $grade->subject->name,
-                'raw_marks' => $marks,
-                'grade' => $subjectResult['grade'],
-                'points' => $subjectResult['points'],
-                'descriptor' => $subjectResult['description'],
-                'color' => self::getOLevelGradeColor($subjectResult['grade']),
+                'status' => $result['status'],
+                'raw_marks' => $result['final_mark'] ?? 0,
+                'final_mark' => $result['final_mark'],
+                'activities' => $result['activity_scores'],
+                'activity_avg' => $result['activity_avg'],
+                'activity_max' => $result['activity_max'],
+                'ca_mark' => $result['ca_mark'],
+                'ca_total' => $result['ca_total'],
+                'eot_raw_score' => $result['eot_raw_score'],
+                'eot_max_score' => $result['eot_max_score'],
+                'eot_status' => $result['eot_status'],
+                'identifier' => $result['identifier'],
+                'project_score_raw' => $result['project_score_raw'],
+                'project_score_max' => $result['project_score_max'],
+                'project_status' => $result['project_status'],
+                'project_grade' => $result['project_grade'],
+                'grade' => $result['grade'],
+                'points' => $result['points'],
+                'descriptor' => $result['description'],
+                'color' => $result['grade'] !== null ? self::getOLevelGradeColor($result['grade']) : 'bg-amber-100 text-amber-800',
                 'components' => $components,
             ];
         });
 
-        $totalPoints = (int) $gradedSubjects->sum('points');
+        // Total Points: ONLY subjects with a resolved grade count — INCOMPLETE and
+        // NOT YET ASSESSED subjects are excluded from numerator AND denominator.
+        $resolved = $gradedSubjects->where('status', AssessmentGradingService::STATUS_GRADED);
+        $resolvedCount = $resolved->count();
+        $maxPointsValue = AssessmentGradingService::maxPointsForRanges($ranges);
+        $totalPoints = (int) $resolved->sum('points');
+        $maxTotalPoints = (int) ($resolvedCount * $maxPointsValue);
         $subjectCount = $gradedSubjects->count();
-        $averagePoints = $subjectCount > 0 ? round($totalPoints / $subjectCount, 2) : 0;
-        $overallGrade = AssessmentGradingService::resolve($average, $ranges)['grade'];
-        $overallDescriptor = AssessmentGradingService::resolve($average, $ranges)['description'];
+        $averagePoints = $resolvedCount > 0 ? round($totalPoints / $resolvedCount, 2) : 0;
+
+        // ONE overall-grade formula: average percentage of graded subjects, banded by
+        // the same configurable scale each subject uses (UgandaGrading::oLevelOverallLevel
+        // delegates to this same source — the two can no longer disagree).
+        $gradedAverage = $resolvedCount > 0 ? round($resolved->sum('final_mark') / $resolvedCount, 2) : null;
+        $overall = AssessmentGradingService::resolveMark($gradedAverage, $ranges);
 
         return [
             'format' => 'o-level',
             'format_label' => 'O-Level School Report (Competency-Based)',
             'subjects' => $gradedSubjects,
             'total_marks' => $totalMarks,
-            'average' => round($average, 2),
+            'average' => $gradedAverage ?? round($average, 2),
             'total_points' => $totalPoints,
+            'max_total_points' => $maxTotalPoints,
+            'max_points_per_subject' => (int) $maxPointsValue,
+            'resolved_subject_count' => $resolvedCount,
+            'points_denominator_label' => "{$totalPoints} / ({$resolvedCount} subjects \u{00d7} " . (int) $maxPointsValue . ')',
             'average_points' => $averagePoints,
             'subject_count' => $subjectCount,
-            'overall_grade' => $overallGrade,
-            'overall_descriptor' => $overallDescriptor,
+            'overall_grade' => $overall['grade'] ?? $overall['description'],
+            'overall_descriptor' => $overall['description'],
+            'ca_total' => $weights['ca'],
+            'eot_total' => $weights['eot'],
             'position' => $position,
             'class_size' => $classSize,
             'remarks' => [

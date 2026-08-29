@@ -47,6 +47,11 @@
     'selectedClassId' => $selectedClassId,
     ])
     @else
+    @if($isOLevel ?? false)
+    {{-- O-Level (UCE): shared activity/CA entry grid — same partial as the admin
+         Grades screen; the final mark is computed (CA + EOT), never typed. --}}
+    @include('grades.partials.olevel-entry', ['action' => route('teacher.save-grades', $exam)])
+    @else
     {{-- CHANGED: replaced the static marks table with the shared <x-grade-entry-form> component
          (live grade preview, keyboard nav, progress, unsaved-changes guard, save confirmation). --}}
     <x-grade-entry-form
@@ -61,6 +66,7 @@
         :full-marks="$fullMarks"
         :pass-marks="$passMarks"
         :exam="$exam" />
+    @endif {{-- closes the o-level vs standard entry branch --}}
 
     {{-- CHANGED: original static table preserved for reference
     <form method="POST" action="{{ route('teacher.save-grades', $exam) }}">

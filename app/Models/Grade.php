@@ -19,6 +19,14 @@ class Grade extends Model
         'school_class_id',
         'marks_obtained',
         'ca_marks',
+        // O-Level activity/CA layer: EOT score, teacher-entered identifier, project work.
+        'eot_raw_score',
+        'eot_max_score',
+        'eot_status',
+        'identifier',
+        'project_score_raw',
+        'project_score_max',
+        'project_status',
         'grade_letter',
         'achievement_level',
         'remarks',
@@ -28,7 +36,31 @@ class Grade extends Model
     protected $casts = [
         'marks_obtained' => 'decimal:2',
         'ca_marks' => 'decimal:2',
+        'eot_raw_score' => 'decimal:2',
+        'eot_max_score' => 'decimal:2',
+        'project_score_raw' => 'decimal:2',
+        'project_score_max' => 'decimal:2',
+        'identifier' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        // Save-time guards (all DB drivers): identifier is 1/2/3 or null, and an EOT
+        // score above its max must never persist (a real card printed 1,066.67 / 80).
+        static::saving(function (self $grade) {
+            if ($grade->identifier !== null && ! in_array((int) $grade->identifier, [1, 2, 3], true)) {
+                throw new \InvalidArgumentException('Identifier must be 1, 2 or 3.');
+            }
+            if ($grade->eot_raw_score !== null && $grade->eot_max_score !== null
+                && (float) $grade->eot_raw_score > (float) $grade->eot_max_score) {
+                throw new \InvalidArgumentException('EOT score cannot exceed its maximum of ' . (float) $grade->eot_max_score . '.');
+            }
+            if ($grade->project_score_raw !== null && $grade->project_score_max !== null
+                && (float) $grade->project_score_raw > (float) $grade->project_score_max) {
+                throw new \InvalidArgumentException('Project score cannot exceed its maximum of ' . (float) $grade->project_score_max . '.');
+            }
+        });
+    }
 
     public function exam()
     {

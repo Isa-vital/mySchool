@@ -219,9 +219,13 @@
                     </td>
                     @endforeach
                     <td class="px-4 py-2 text-center">
+                        @if(($subject['status'] ?? 'graded') === 'graded')
                         <div class="font-bold {{ $subject['color'] }}">{{ $subject['grade'] }}</div>
                         <div class="text-gray-600">{{ $subject['points'] }} pts</div>
                         <div class="text-gray-600 italic">{{ $subject['descriptor'] }}</div>
+                        @else
+                        <div class="text-xs font-bold text-amber-600">{{ ($subject['status'] ?? '') === 'incomplete' ? 'INCOMPLETE' : 'NOT YET ASSESSED' }}</div>
+                        @endif
                     </td>
                 </tr>
                 @endforeach
@@ -230,53 +234,100 @@
                 <tr>
                     <td colspan="{{ 2 + count($oLevelCompNames) }}" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Achievement</td>
                     <td class="px-4 py-2 text-sm text-center">
-                        <div class="font-bold">{{ $formatted['overall_grade'] }}</div>
-                        <div class="text-gray-700 font-medium">{{ $formatted['total_points'] }} pts</div>
+                        <div class="font-bold">{{ $formatted['overall_grade'] ?? 'NOT YET ASSESSED' }}</div>
+                        <div class="text-gray-700 font-medium">{{ $formatted['total_points'] }} / ({{ $formatted['resolved_subject_count'] }} × {{ $formatted['max_points_per_subject'] }})</div>
                         <div class="text-gray-600 italic">{{ $formatted['overall_descriptor'] ?? $formatted['overall_grade'] }}</div>
                     </td>
                 </tr>
             </tfoot>
         </table>
         @else
-        {{-- Simple O-Level format without components --}}
+        {{-- Simple O-Level format without components: activity/CA breakdown --}}
+        @php
+        $activityCount = (int) collect($formatted['subjects'])->map(fn($s) => empty($s['activities']) ? 0 : max(array_keys($s['activities'])))->max();
+        @endphp
         <table class="min-w-full divide-y divide-gray-200 mb-6">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Descriptor</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                    @for($n = 1; $n <= $activityCount; $n++)
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">A{{ $n }}</th>
+                    @endfor
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">AVG</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Ident</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">CA (/{{ (int) ($formatted['ca_total'] ?? 20) }})</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">EOT (/{{ (int) ($formatted['eot_total'] ?? 80) }})</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Final</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Descriptor</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 @foreach($formatted['subjects'] as $i => $subject)
+                @php
+                $stateLabel = match ($subject['status'] ?? 'graded') { 'incomplete' => 'INCOMPLETE', 'not_yet_assessed' => 'NOT YET ASSESSED', default => null };
+                @endphp
                 <tr>
-                    <td class="px-4 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
-                    <td class="px-4 py-2 text-sm text-center">
+                    <td class="px-3 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
+                    <td class="px-3 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
+                    @for($n = 1; $n <= $activityCount; $n++)
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
+                    @endfor
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['identifier'] ?? '' }}</td>
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
+                    @if($stateLabel)
+                    <td colspan="4" class="px-2 py-2 text-xs text-center font-bold text-amber-600">{{ $stateLabel }}</td>
+                    @else
+                    <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['final_mark'] !== null ? round($subject['final_mark'], 2) : '—' }}</td>
+                    <td class="px-2 py-2 text-sm text-center">
                         <span class="px-3 py-1 rounded-full text-xs font-bold {{ $subject['color'] }}">
                             {{ $subject['grade'] }}
                         </span>
                     </td>
-                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['points'] }}</td>
-                    <td class="px-4 py-2 text-sm text-center text-gray-700">{{ $subject['descriptor'] }}</td>
+                    <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['points'] }}</td>
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['descriptor'] }}</td>
+                    @endif
                 </tr>
                 @endforeach
             </tbody>
             <tfoot class="bg-gray-50">
                 <tr>
-                    <td colspan="2" class="px-4 py-2 text-sm font-bold text-gray-900">Overall Competency</td>
-                    <td class="px-4 py-2 text-sm text-center font-bold">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-                            {{ $formatted['overall_grade'] }}
-                        </span>
+                    <td colspan="{{ 2 + $activityCount + 4 }}" class="px-3 py-2 text-sm font-bold text-gray-900 text-right">Total Points</td>
+                    <td colspan="4" class="px-2 py-2 text-sm text-center font-bold text-gray-900">
+                        {{ $formatted['total_points'] }} / ({{ $formatted['resolved_subject_count'] }} subjects × {{ $formatted['max_points_per_subject'] }})
+                        — Overall: {{ $formatted['overall_grade'] ?? 'NOT YET ASSESSED' }}
                     </td>
-                    <td class="px-4 py-2 text-sm text-center font-bold text-gray-900">{{ $formatted['total_points'] }} pts</td>
-                    <td class="px-4 py-2 text-sm text-center text-gray-700">{{ $formatted['overall_descriptor'] ?? $formatted['overall_grade'] }}</td>
                 </tr>
             </tfoot>
         </table>
+        @php
+        $projectRows = collect($formatted['subjects'])->filter(fn($s) => ($s['project_score_raw'] ?? null) !== null)->values();
+        @endphp
+        @if($projectRows->isNotEmpty())
+        {{-- Project work: own score and grade — never merged into the subject's final mark --}}
+        <table class="min-w-full divide-y divide-gray-200 mb-6">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Project Work — Subject</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Score</th>
+                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($projectRows as $projectRow)
+                <tr>
+                    <td class="px-3 py-2 text-sm text-gray-900">{{ $projectRow['subject'] }}</td>
+                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ number_format($projectRow['project_score_raw'], 1) }} / {{ (int) $projectRow['project_score_max'] }}</td>
+                    <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $projectRow['project_grade'] ?? '—' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @endif
         @endif
 
         @elseif($formatted['format'] === 'a-level')
@@ -464,7 +515,8 @@
             @elseif($formatted['format'] === 'o-level')
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Total Points</div>
-                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['total_points'] }} pts</div>
+                {{-- denominator = resolved subjects only — never a fixed constant --}}
+                <div class="text-lg font-bold" style="color: var(--primary-color);">{{ $formatted['total_points'] }} / ({{ $formatted['resolved_subject_count'] }} × {{ $formatted['max_points_per_subject'] }})</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Average Points</div>
@@ -472,7 +524,7 @@
             </div>
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Overall Competency</div>
-                <div class="text-lg font-bold text-gray-900">{{ $formatted['overall_grade'] }}</div>
+                <div class="text-lg font-bold text-gray-900">{{ $formatted['overall_grade'] ?? 'NOT YET ASSESSED' }}</div>
             </div>
             <div class="rounded-lg border p-3 text-center">
                 <div class="text-xs text-gray-500 uppercase">Position</div>
