@@ -33,14 +33,14 @@ $projectMax = $projectMax ?? \App\Services\AssessmentGradingService::projectMaxS
                         <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                         <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
                         @for($n = 1; $n <= $activityColumns; $n++)
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">A{{ $n }}</th>
-                        @endfor
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ident</th>
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">EOT (/{{ (int) $caWeights['eot'] }})</th>
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">EOT Status</th>
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Project (/{{ (int) $projectMax }})</th>
-                        <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Current</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">A{{ $n }}</th>
+                            @endfor
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ident</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">EOT (/{{ (int) $caWeights['eot'] }})</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">EOT Status</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Project (/{{ (int) $projectMax }})</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Current</th>
+                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -57,53 +57,53 @@ $projectMax = $projectMax ?? \App\Services\AssessmentGradingService::projectMaxS
                             <input type="hidden" name="grades[{{ $i }}][student_id]" value="{{ $student->id }}">
                         </td>
                         @for($n = 1; $n <= $activityColumns; $n++)
-                        <td class="px-2 py-2 text-center">
+                            <td class="px-2 py-2 text-center">
                             <input type="number" name="grades[{{ $i }}][activities][{{ $n }}]"
                                 value="{{ $studentActivities[$n] ?? '' }}"
                                 min="0" max="{{ $activityMax }}" step="0.01"
                                 class="w-16 text-center rounded border-gray-300 text-sm" placeholder="&mdash;">
-                        </td>
-                        @endfor
-                        <td class="px-2 py-2 text-center">
-                            <select name="grades[{{ $i }}][identifier]" class="w-16 rounded border-gray-300 text-sm">
-                                <option value="" @selected(($existing?->identifier) === null)>&mdash;</option>
-                                @foreach([1, 2, 3] as $identValue)
-                                <option value="{{ $identValue }}" @selected((int) ($existing?->identifier ?? 0) === $identValue)>{{ $identValue }}</option>
-                                @endforeach
-                            </select>
-                        </td>
-                        <td class="px-2 py-2 text-center">
-                            <input type="number" name="grades[{{ $i }}][eot_raw_score]"
-                                value="{{ $existing?->eot_raw_score !== null ? (float) $existing->eot_raw_score : '' }}"
-                                min="0" max="{{ (float) ($existing?->eot_max_score ?? $caWeights['eot']) }}" step="0.01"
-                                class="w-20 text-center rounded border-gray-300 text-sm" placeholder="&mdash;">
-                        </td>
-                        <td class="px-2 py-2 text-center">
-                            <select name="grades[{{ $i }}][eot_status]" class="rounded border-gray-300 text-sm">
-                                <option value="scored" @selected(($existing?->eot_status ?? 'scored') === 'scored')>Scored</option>
-                                <option value="absent" @selected(($existing?->eot_status) === 'absent')>Absent</option>
-                                <option value="withheld" @selected(($existing?->eot_status) === 'withheld')>Withheld</option>
-                            </select>
-                        </td>
-                        <td class="px-2 py-2 text-center">
-                            <input type="number" name="grades[{{ $i }}][project_score_raw]"
-                                value="{{ $existing?->project_score_raw !== null ? (float) $existing->project_score_raw : '' }}"
-                                min="0" max="{{ (float) ($existing?->project_score_max ?? $projectMax) }}" step="0.01"
-                                class="w-16 text-center rounded border-gray-300 text-sm" placeholder="&mdash;">
-                        </td>
-                        <td class="px-2 py-2 text-center text-sm font-semibold {{ $existing?->grade_letter ? 'text-gray-900' : 'text-amber-600' }}">
-                            @if($existing?->grade_letter)
-                            {{ $existing->grade_letter }} ({{ (float) $existing->marks_obtained }})
-                            @elseif($existing?->achievement_level)
-                            <span class="text-[10px] uppercase">{{ $existing->achievement_level }}</span>
-                            @else
-                            &mdash;
-                            @endif
-                        </td>
-                        <td class="px-3 py-2">
-                            <input type="text" name="grades[{{ $i }}][remarks]" value="{{ $existing?->remarks }}"
-                                class="w-full rounded border-gray-300 text-sm" placeholder="Optional">
-                        </td>
+                            </td>
+                            @endfor
+                            <td class="px-2 py-2 text-center">
+                                <select name="grades[{{ $i }}][identifier]" class="w-16 rounded border-gray-300 text-sm">
+                                    <option value="" @selected(($existing?->identifier) === null)>&mdash;</option>
+                                    @foreach([1, 2, 3] as $identValue)
+                                    <option value="{{ $identValue }}" @selected((int) ($existing?->identifier ?? 0) === $identValue)>{{ $identValue }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="px-2 py-2 text-center">
+                                <input type="number" name="grades[{{ $i }}][eot_raw_score]"
+                                    value="{{ $existing?->eot_raw_score !== null ? (float) $existing->eot_raw_score : '' }}"
+                                    min="0" max="{{ (float) ($existing?->eot_max_score ?? $caWeights['eot']) }}" step="0.01"
+                                    class="w-20 text-center rounded border-gray-300 text-sm" placeholder="&mdash;">
+                            </td>
+                            <td class="px-2 py-2 text-center">
+                                <select name="grades[{{ $i }}][eot_status]" class="rounded border-gray-300 text-sm">
+                                    <option value="scored" @selected(($existing?->eot_status ?? 'scored') === 'scored')>Scored</option>
+                                    <option value="absent" @selected(($existing?->eot_status) === 'absent')>Absent</option>
+                                    <option value="withheld" @selected(($existing?->eot_status) === 'withheld')>Withheld</option>
+                                </select>
+                            </td>
+                            <td class="px-2 py-2 text-center">
+                                <input type="number" name="grades[{{ $i }}][project_score_raw]"
+                                    value="{{ $existing?->project_score_raw !== null ? (float) $existing->project_score_raw : '' }}"
+                                    min="0" max="{{ (float) ($existing?->project_score_max ?? $projectMax) }}" step="0.01"
+                                    class="w-16 text-center rounded border-gray-300 text-sm" placeholder="&mdash;">
+                            </td>
+                            <td class="px-2 py-2 text-center text-sm font-semibold {{ $existing?->grade_letter ? 'text-gray-900' : 'text-amber-600' }}">
+                                @if($existing?->grade_letter)
+                                {{ $existing->grade_letter }} ({{ (float) $existing->marks_obtained }})
+                                @elseif($existing?->achievement_level)
+                                <span class="text-[10px] uppercase">{{ $existing->achievement_level }}</span>
+                                @else
+                                &mdash;
+                                @endif
+                            </td>
+                            <td class="px-3 py-2">
+                                <input type="text" name="grades[{{ $i }}][remarks]" value="{{ $existing?->remarks }}"
+                                    class="w-full rounded border-gray-300 text-sm" placeholder="Optional">
+                            </td>
                     </tr>
                     @endforeach
                 </tbody>

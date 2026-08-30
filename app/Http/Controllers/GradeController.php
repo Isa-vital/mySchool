@@ -385,8 +385,10 @@ class GradeController extends Controller
 
         // O-Level path: activities + identifier + EOT are the entry unit; the final
         // mark is computed (never typed) via computeOLevelFinalMark.
-        if ($gradeClass && AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
-            && $request->boolean('olevel_entry')) {
+        if (
+            $gradeClass && AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
+            && $request->boolean('olevel_entry')
+        ) {
             return $this->saveOLevel($request, $exam, $gradeClass);
         }
 

@@ -159,15 +159,15 @@ $eotTotal = (int) ($formatted['eot_total'] ?? 80);
             @endforeach
             @endif
             @for($n = 1; $n <= $activityCount; $n++)
-            <th>A{{ $n }}</th>
-            @endfor
-            <th style="width:6%;">AVG</th>
-            <th style="width:6%;">Ident</th>
-            <th style="width:8%;">CA (/{{ $caTotal }})</th>
-            <th style="width:8%;">EOT (/{{ $eotTotal }})</th>
-            <th style="width:8%;">Final</th>
-            <th style="width:7%;">Grade</th>
-            <th style="width:7%;">Points</th>
+                <th>A{{ $n }}</th>
+                @endfor
+                <th style="width:6%;">AVG</th>
+                <th style="width:6%;">Ident</th>
+                <th style="width:8%;">CA (/{{ $caTotal }})</th>
+                <th style="width:8%;">EOT (/{{ $eotTotal }})</th>
+                <th style="width:8%;">Final</th>
+                <th style="width:7%;">Grade</th>
+                <th style="width:7%;">Points</th>
         </tr>
     </thead>
     <tbody>
@@ -189,19 +189,19 @@ $eotTotal = (int) ($formatted['eot_total'] ?? 80);
             @endforeach
             @endif
             @for($n = 1; $n <= $activityCount; $n++)
-            <td>{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
-            @endfor
-            <td>{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
-            <td>{{ $subject['identifier'] ?? '' }}</td>
-            <td>{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
-            <td>{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
-            @if($stateLabel)
-            <td colspan="3" style="color:#b45309; font-size:8px;"><strong>{{ $stateLabel }}</strong></td>
-            @else
-            <td><strong>{{ $subject['final_mark'] !== null ? round($subject['final_mark']) : '—' }}</strong></td>
-            <td><strong>{{ $subject['grade'] }}</strong></td>
-            <td><strong>{{ $subject['points'] }}</strong></td>
-            @endif
+                <td>{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
+                @endfor
+                <td>{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
+                <td>{{ $subject['identifier'] ?? '' }}</td>
+                <td>{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
+                <td>{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
+                @if($stateLabel)
+                <td colspan="3" style="color:#b45309; font-size:8px;"><strong>{{ $stateLabel }}</strong></td>
+                @else
+                <td><strong>{{ $subject['final_mark'] !== null ? round($subject['final_mark']) : '—' }}</strong></td>
+                <td><strong>{{ $subject['grade'] }}</strong></td>
+                <td><strong>{{ $subject['points'] }}</strong></td>
+                @endif
         </tr>
         @endforeach
         <tr>

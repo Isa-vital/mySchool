@@ -252,16 +252,16 @@
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
                     @for($n = 1; $n <= $activityCount; $n++)
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">A{{ $n }}</th>
-                    @endfor
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">AVG</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Ident</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">CA (/{{ (int) ($formatted['ca_total'] ?? 20) }})</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">EOT (/{{ (int) ($formatted['eot_total'] ?? 80) }})</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Final</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
-                    <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Descriptor</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">A{{ $n }}</th>
+                        @endfor
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">AVG</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Ident</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">CA (/{{ (int) ($formatted['ca_total'] ?? 20) }})</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">EOT (/{{ (int) ($formatted['eot_total'] ?? 80) }})</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Final</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Grade</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Descriptor</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -273,24 +273,24 @@
                     <td class="px-3 py-2 text-sm text-gray-500">{{ $i + 1 }}</td>
                     <td class="px-3 py-2 text-sm text-gray-900">{{ $subject['subject'] }}</td>
                     @for($n = 1; $n <= $activityCount; $n++)
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
-                    @endfor
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['identifier'] ?? '' }}</td>
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
-                    @if($stateLabel)
-                    <td colspan="4" class="px-2 py-2 text-xs text-center font-bold text-amber-600">{{ $stateLabel }}</td>
-                    @else
-                    <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['final_mark'] !== null ? round($subject['final_mark'], 2) : '—' }}</td>
-                    <td class="px-2 py-2 text-sm text-center">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold {{ $subject['color'] }}">
-                            {{ $subject['grade'] }}
-                        </span>
-                    </td>
-                    <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['points'] }}</td>
-                    <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['descriptor'] }}</td>
-                    @endif
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ isset($subject['activities'][$n]) ? number_format($subject['activities'][$n], 2) : '—' }}</td>
+                        @endfor
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['activity_avg'] !== null ? number_format($subject['activity_avg'], 2) : '—' }}</td>
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['identifier'] ?? '' }}</td>
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['ca_mark'] !== null ? number_format($subject['ca_mark'], 2) : '—' }}</td>
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['eot_raw_score'] !== null ? number_format($subject['eot_raw_score'], 2) : strtoupper($subject['eot_status'] ?? '—') }}</td>
+                        @if($stateLabel)
+                        <td colspan="4" class="px-2 py-2 text-xs text-center font-bold text-amber-600">{{ $stateLabel }}</td>
+                        @else
+                        <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['final_mark'] !== null ? round($subject['final_mark'], 2) : '—' }}</td>
+                        <td class="px-2 py-2 text-sm text-center">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold {{ $subject['color'] }}">
+                                {{ $subject['grade'] }}
+                            </span>
+                        </td>
+                        <td class="px-2 py-2 text-sm text-center font-bold text-gray-900">{{ $subject['points'] }}</td>
+                        <td class="px-2 py-2 text-sm text-center text-gray-700">{{ $subject['descriptor'] }}</td>
+                        @endif
                 </tr>
                 @endforeach
             </tbody>

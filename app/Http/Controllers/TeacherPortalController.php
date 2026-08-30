@@ -319,8 +319,10 @@ class TeacherPortalController extends Controller
 
         // O-Level path: same shared save as the admin Grades screen — the final
         // mark is computed (CA + EOT), never typed.
-        if ($gradeClass && \App\Services\AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
-            && $request->boolean('olevel_entry')) {
+        if (
+            $gradeClass && \App\Services\AssessmentGradingService::resolveFormat($exam->assessment_format, $gradeClass) === 'o-level'
+            && $request->boolean('olevel_entry')
+        ) {
             $subject = Subject::findOrFail((int) $request->subject_id);
             \App\Services\OLevelMarksService::save($exam, $gradeClass, $subject, (array) $request->grades, (int) auth()->id());
 

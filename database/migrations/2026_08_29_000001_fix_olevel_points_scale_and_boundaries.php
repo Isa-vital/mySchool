@@ -122,10 +122,12 @@ return new class extends Migration
         foreach ($bands as $band) {
             $grade = strtoupper((string) ($band['grade'] ?? ''));
             $expected = self::OLD_DEFAULT_BANDS[$grade] ?? null;
-            if (! $expected
+            if (
+                ! $expected
                 || abs((float) ($band['min'] ?? -1) - $expected['min']) > 0.001
                 || abs((float) ($band['max'] ?? -1) - $expected['max']) > 0.001
-                || (int) ($band['points'] ?? -1) !== $expected['points']) {
+                || (int) ($band['points'] ?? -1) !== $expected['points']
+            ) {
                 return false;
             }
         }

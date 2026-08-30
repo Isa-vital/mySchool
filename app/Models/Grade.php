@@ -51,12 +51,16 @@ class Grade extends Model
             if ($grade->identifier !== null && ! in_array((int) $grade->identifier, [1, 2, 3], true)) {
                 throw new \InvalidArgumentException('Identifier must be 1, 2 or 3.');
             }
-            if ($grade->eot_raw_score !== null && $grade->eot_max_score !== null
-                && (float) $grade->eot_raw_score > (float) $grade->eot_max_score) {
+            if (
+                $grade->eot_raw_score !== null && $grade->eot_max_score !== null
+                && (float) $grade->eot_raw_score > (float) $grade->eot_max_score
+            ) {
                 throw new \InvalidArgumentException('EOT score cannot exceed its maximum of ' . (float) $grade->eot_max_score . '.');
             }
-            if ($grade->project_score_raw !== null && $grade->project_score_max !== null
-                && (float) $grade->project_score_raw > (float) $grade->project_score_max) {
+            if (
+                $grade->project_score_raw !== null && $grade->project_score_max !== null
+                && (float) $grade->project_score_raw > (float) $grade->project_score_max
+            ) {
                 throw new \InvalidArgumentException('Project score cannot exceed its maximum of ' . (float) $grade->project_score_max . '.');
             }
         });
